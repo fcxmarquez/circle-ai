@@ -23,6 +23,7 @@ export function NavMain({
     icon: LucideIcon;
     onClick: () => void;
     shortcut?: string;
+    shiftKey?: boolean;
   }[];
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
@@ -55,7 +56,9 @@ export function NavMain({
               <span>{item.title}</span>
               {item.shortcut && !isMobile && (
                 <kbd className="ml-auto hidden items-center gap-0.5 text-xs text-muted-foreground group-hover/navitem:inline-flex">
-                  {isMac ? <Command className="size-3" /> : "Ctrl"} {item.shortcut}
+                  {isMac ? <Command className="size-3" /> : "Ctrl"}{" "}
+                  {item.shiftKey && "Shift "}
+                  {item.shortcut}
                 </kbd>
               )}
             </button>

@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { Providers } from "./providers";
 import "./globals.css";
 import { AppSidebar } from "@/components/app-sidebar";
+import { GlobalShortcuts } from "@/components/global-shortcuts";
 import { ModalRender } from "@/components/modals/ModalRender";
 import { ShadcnModalRender } from "@/components/modals/shadcn-modal-render";
 import { ModelSelector } from "@/components/model-selector";
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ModalRender />
           <Toaster />
           <SidebarProvider>
+            <GlobalShortcuts />
             <ShadcnModalRender />
             <AppSidebar />
             <SidebarInset className="relative min-h-dvh max-h-dvh h-full overflow-y-hidden overflow-x-hidden">

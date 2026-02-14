@@ -2,7 +2,6 @@
 
 import { SquarePen } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import {
   Command,
   CommandDialog,
@@ -34,19 +33,6 @@ export function SearchChatsDialog({ open, onOpenChange }: SearchChatsDialogProps
   const isMobile = useIsMobile();
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
-
-  // Cmd+K / Ctrl+K keyboard shortcut
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
-        event.preventDefault();
-        onOpenChange(!open);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onOpenChange, open]);
 
   const chatHistory = conversations.map((conversation) => ({
     id: conversation.id,

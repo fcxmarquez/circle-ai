@@ -49,6 +49,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "New chat",
         onClick: handleNewChat,
         icon: SquarePen,
+        shortcut: "O",
+        shiftKey: true,
       },
       {
         title: "Search chats",
