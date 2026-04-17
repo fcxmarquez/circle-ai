@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSendMessageStream } from "@/fetch/chat/mutations";
 import type { ChatMessage } from "@/lib/langchain/chatService";
@@ -17,6 +17,12 @@ export const useCircleChat = () => {
     useChatActions();
   const { accumulateChunk, flushChunks, flushIntervalRef } = useManageChunks();
   const sendMessageStream = useSendMessageStream();
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const sendMessage = (message: string) => {
     if (isSendingRef.current || isLoading) {
@@ -88,8 +94,7 @@ export const useCircleChat = () => {
         }
         flushChunks();
 
-        const isAborted =
-          error.name === "AbortError" || error.message?.includes("aborted");
+        const isAborted = error.name === "AbortError";
 
         if (isAborted) {
           if (!partialResponse || !partialResponse.trim()) {
