@@ -125,7 +125,7 @@ type AnthropicReasoningFields = {
   thinking?: { type: "enabled"; budget_tokens: number } | { type: "disabled" };
 };
 
-type OpenAIReasoningEffort = "minimal" | "low" | "medium" | "high";
+type OpenAIReasoningEffort = "none" | "low" | "medium" | "high";
 
 type OpenAIReasoningFields = {
   reasoning?: { effort: OpenAIReasoningEffort };
@@ -133,7 +133,8 @@ type OpenAIReasoningFields = {
 
 export type ReasoningFields = AnthropicReasoningFields | OpenAIReasoningFields;
 
-// Minimum thinking budget accepted by Anthropic is 1024 tokens.
+// Minimum thinking budget accepted by Anthropic is 1024 tokens. Claude 4.5
+// only supports manual extended thinking (adaptive thinking is 4.6+).
 const ANTHROPIC_THINKING_BUDGETS: Record<ReasoningLevel, number | null> = {
   none: null,
   low: 1024,
@@ -142,8 +143,10 @@ const ANTHROPIC_THINKING_BUDGETS: Record<ReasoningLevel, number | null> = {
   max: 16_000,
 };
 
+// GPT-5.2 accepts { none, low, medium, high }. "xhigh" only exists on
+// gpt-5.1-codex-max / gpt-5.3-codex, which we don't surface here.
 const OPENAI_REASONING_EFFORTS: Record<ReasoningLevel, OpenAIReasoningEffort> = {
-  none: "minimal",
+  none: "none",
   low: "low",
   medium: "medium",
   high: "high",
