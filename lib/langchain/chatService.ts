@@ -1,12 +1,13 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { initChatModel } from "langchain";
+import type { ModelProvider } from "@/constants/models";
 import {
   getModelConfig,
   getReasoningFields,
   supportsTemperatureAtLevel,
 } from "@/constants/models";
-import type { ChatMessage, ChatModelConfig } from "@/lib/chat/contracts";
+import type { ChatApiKeys, ChatMessage, ChatModelConfig } from "@/lib/chat/contracts";
 
 export const DEFAULT_SYSTEM_PROMPT =
   "You are EnkiAI, a helpful and knowledgeable AI assistant.";
@@ -37,20 +38,16 @@ async function buildChatModel(
     throw new Error(`Unknown model: ${config.selectedModel}`);
   }
 
-  const apiKey =
-    modelConfig.provider === "Anthropic"
-      ? config.anthropicKey
-      : modelConfig.provider === "Google"
-        ? config.googleKey
-        : config.openAIKey;
+  const PROVIDER_KEY: Record<ModelProvider, keyof ChatApiKeys> = {
+    OpenAI: "openAIKey",
+    Anthropic: "anthropicKey",
+    Google: "googleKey",
+  };
+  const apiKey = config[PROVIDER_KEY[modelConfig.provider]];
   if (!apiKey) {
-    const providerName =
-      modelConfig.provider === "Anthropic"
-        ? "Anthropic"
-        : modelConfig.provider === "Google"
-          ? "Google"
-          : "OpenAI";
-    throw new Error(`${providerName} API key is required for ${modelConfig.label}.`);
+    throw new Error(
+      `${modelConfig.provider} API key is required for ${modelConfig.label}.`
+    );
   }
 
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
