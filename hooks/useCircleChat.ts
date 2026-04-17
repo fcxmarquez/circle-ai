@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSendMessageStream } from "@/fetch/chat/mutations";
 import type { ChatMessage } from "@/lib/langchain/chatService";
@@ -10,12 +10,19 @@ export const useCircleChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const isSendingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
   const { currentConversationId, messages } = useChat();
   const { createNewConversation, addMessage, setMessageStatus, deleteMessage } =
     useChatActions();
   const { accumulateChunk, flushChunks, flushIntervalRef } = useManageChunks();
   const sendMessageStream = useSendMessageStream();
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const sendMessage = (message: string) => {
     if (isSendingRef.current || isLoading) {
@@ -49,13 +56,19 @@ export const useCircleChat = () => {
       content: msg.content,
     }));
 
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     sendMessageStream.mutate({
       message: trimmedMessage,
       history,
+      signal: abortController.signal,
       onChunk: (chunk: string) => {
         accumulateChunk(assistantMessage.id, chunk);
       },
       onComplete: () => {
+        abortControllerRef.current = null;
+
         if (flushIntervalRef.current) {
           clearInterval(flushIntervalRef.current);
           flushIntervalRef.current = null;
@@ -73,14 +86,34 @@ export const useCircleChat = () => {
         }
       },
       onError: (error: Error, partialResponse: string) => {
-        console.error("Streaming error:", error);
-        setError(error);
+        abortControllerRef.current = null;
 
         if (flushIntervalRef.current) {
           clearInterval(flushIntervalRef.current);
           flushIntervalRef.current = null;
         }
         flushChunks();
+
+        const isAborted = error.name === "AbortError";
+
+        if (isAborted) {
+          if (!partialResponse || !partialResponse.trim()) {
+            deleteMessage(assistantMessage.id);
+          } else {
+            setMessageStatus(assistantMessage.id, "success");
+          }
+
+          isSendingRef.current = false;
+          setIsLoading(false);
+
+          if (newConversationId) {
+            router.replace(`/c/${newConversationId}`);
+          }
+          return;
+        }
+
+        console.error("Streaming error:", error);
+        setError(error);
 
         if (!partialResponse || !partialResponse.trim()) {
           deleteMessage(assistantMessage.id);
@@ -103,11 +136,18 @@ export const useCircleChat = () => {
     });
   };
 
+  const stopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
+
   return {
     isError: Boolean(error),
     error,
     messages,
     sendMessage,
+    stopGeneration,
     isLoading,
   };
 };

@@ -20,7 +20,8 @@ export const ChatArea = () => {
   const { setSettingsModalOpen } = useUIActions();
   const { hasValidApiKey } = useConfig();
   const hasApiKey = hasValidApiKey();
-  const { sendMessage, isLoading, messages, isError, error } = useCircleChat();
+  const { sendMessage, stopGeneration, isLoading, messages, isError, error } =
+    useCircleChat();
   // TEMP: Disabled for rebuild - FCX-30
   // const [hasSession, setHasSession] = useState<boolean | null>(null);
 
@@ -114,7 +115,11 @@ export const ChatArea = () => {
       </div>
 
       <div className="w-full py-8">
-        <InputChat isLoading={isLoading} onSubmit={handleSubmit} />
+        <InputChat
+          isLoading={isLoading}
+          onSubmit={handleSubmit}
+          onStop={stopGeneration}
+        />
       </div>
     </div>
   );

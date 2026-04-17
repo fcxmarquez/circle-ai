@@ -1,7 +1,7 @@
 "use client";
 
+import { Send, Square } from "lucide-react";
 import { type FC, useState } from "react";
-import { IoMdSend } from "react-icons/io";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -9,10 +9,11 @@ import { useConfig, useUIActions } from "@/store";
 
 interface InputChatProps {
   onSubmit: (message: string) => void;
+  onStop: () => void;
   isLoading: boolean;
 }
 
-export const InputChat: FC<InputChatProps> = ({ onSubmit, isLoading }) => {
+export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) => {
   const [message, setMessage] = useState("");
 
   const { hasValidApiKey } = useConfig();
@@ -56,18 +57,33 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, isLoading }) => {
           disabled={isLoading || !hasApiKey}
         />
         {hasApiKey ? (
-          <Button
-            size="icon"
-            className={cn(
-              "absolute right-2 h-10 w-10 rounded-lg",
-              "hover:opacity-90 transition-opacity"
-            )}
-            onClick={handleSendMessage}
-            disabled={isLoading || !message.trim()}
-            aria-label="Send message"
-          >
-            <IoMdSend className="h-4 w-4" />
-          </Button>
+          isLoading ? (
+            <Button
+              size="icon"
+              variant="destructive"
+              className={cn(
+                "absolute right-2 h-10 w-10 rounded-lg",
+                "hover:opacity-90 transition-opacity"
+              )}
+              onClick={onStop}
+              aria-label="Stop generating"
+            >
+              <Square className="h-4 w-4 fill-current" />
+            </Button>
+          ) : (
+            <Button
+              size="icon"
+              className={cn(
+                "absolute right-2 h-10 w-10 rounded-lg",
+                "hover:opacity-90 transition-opacity"
+              )}
+              onClick={handleSendMessage}
+              disabled={!message.trim()}
+              aria-label="Send message"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          )
         ) : (
           <Button
             className={cn(
