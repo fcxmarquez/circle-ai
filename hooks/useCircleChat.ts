@@ -78,6 +78,7 @@ export const useCircleChat = () => {
       config: {
         openAIKey: config.openAIKey,
         anthropicKey: config.anthropicKey,
+        googleKey: config.googleKey,
         selectedModel: config.selectedModel,
         reasoningLevel: config.reasoningLevel,
       },
