@@ -15,9 +15,10 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_TEMPERATURE = 0.7;
 
-const PROVIDER_PREFIX: Record<"OpenAI" | "Anthropic", string> = {
+const PROVIDER_PREFIX: Record<"OpenAI" | "Anthropic" | "Google", string> = {
   OpenAI: "openai",
   Anthropic: "anthropic",
+  Google: "google-genai",
 };
 
 export interface StreamChatResponseOptions {
@@ -36,18 +37,20 @@ async function buildChatModel(
     throw new Error(`Unknown model: ${config.selectedModel}`);
   }
 
-  if (modelConfig.provider === "Google") {
-    throw new Error("Google Gemini support is not yet implemented.");
-  }
-
   const apiKey =
-    modelConfig.provider === "Anthropic" ? config.anthropicKey : config.openAIKey;
+    modelConfig.provider === "Anthropic"
+      ? config.anthropicKey
+      : modelConfig.provider === "Google"
+        ? config.googleKey
+        : config.openAIKey;
   if (!apiKey) {
-    throw new Error(
+    const providerName =
       modelConfig.provider === "Anthropic"
-        ? "Anthropic API key is required for Claude models."
-        : "OpenAI API key is required for OpenAI models."
-    );
+        ? "Anthropic"
+        : modelConfig.provider === "Google"
+          ? "Google"
+          : "OpenAI";
+    throw new Error(`${providerName} API key is required for ${modelConfig.label}.`);
   }
 
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;

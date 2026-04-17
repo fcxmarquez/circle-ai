@@ -17,14 +17,16 @@ function hasValue(value?: string): boolean {
   return Boolean(value?.trim());
 }
 
-function isSupportedApiKey(
-  key: ApiKeyType | null
-): key is Exclude<ApiKeyType, "googleKey"> {
-  return key === "openAIKey" || key === "anthropicKey";
+function isSupportedApiKey(key: ApiKeyType | null): key is ApiKeyType {
+  return key === "openAIKey" || key === "anthropicKey" || key === "googleKey";
 }
 
 export function hasAnyApiKey(config: ChatApiKeys): boolean {
-  return hasValue(config.openAIKey) || hasValue(config.anthropicKey);
+  return (
+    hasValue(config.openAIKey) ||
+    hasValue(config.anthropicKey) ||
+    hasValue(config.googleKey)
+  );
 }
 
 export function getRequiredApiKey(modelValue: string): ApiKeyType | null {
@@ -75,10 +77,6 @@ export function getSelectedModelError(
   const modelConfig = getModelConfig(config.selectedModel);
   if (!modelConfig) {
     return "Selected model is not available.";
-  }
-
-  if (modelConfig.provider === "Google") {
-    return "Google Gemini support is not yet implemented.";
   }
 
   if (hasRequiredKeyForModel(config.selectedModel, config)) {

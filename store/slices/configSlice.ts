@@ -15,6 +15,7 @@ export interface ConfigSlice {
 const initialConfig: Config = {
   openAIKey: "",
   anthropicKey: "",
+  googleKey: "",
   selectedModel: DEFAULT_MODEL,
   enabledModels: [...DEFAULT_ENABLED_MODELS],
   reasoningLevel: getModelConfig(DEFAULT_MODEL)?.reasoning.defaultLevel ?? "none",
