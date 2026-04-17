@@ -17,7 +17,7 @@ module.exports = {
       : [];
   },
 
-  // this will Format MarkDown and JSON
-  "**/*.(md|json)": (filenames) =>
+  // this will Format JSON (biome does not support markdown)
+  "**/*.json": (filenames) =>
     `npx biome format --write ${filenames.join(" ")}`,
 };
