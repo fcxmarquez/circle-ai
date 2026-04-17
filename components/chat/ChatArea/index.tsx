@@ -12,14 +12,15 @@ import { InputChat } from "@/components/Inputs/InputChat";
 import { colors } from "@/constants/systemDesign/colors";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { useCircleChat } from "@/hooks/useCircleChat";
+import { canSendSelectedModel, getSelectedModelError } from "@/lib/chat/config";
 import { useConfig, useUIActions } from "@/store";
 
 export const ChatArea = () => {
   // const { setSettingsModalOpen } = useUIActions();
   const [isMounted, setIsMounted] = useState(false);
   const { setSettingsModalOpen } = useUIActions();
-  const { hasValidApiKey } = useConfig();
-  const hasApiKey = hasValidApiKey();
+  const { config } = useConfig();
+  const canSend = canSendSelectedModel(config);
   const { sendMessage, stopGeneration, isLoading, messages, isError, error } =
     useCircleChat();
   // TEMP: Disabled for rebuild - FCX-30
@@ -59,8 +60,11 @@ export const ChatArea = () => {
   const handleSubmit = async (message: string) => {
     if (!message.trim()) return;
 
-    if (!hasApiKey) {
-      toast.warning("Please configure your API key in settings to continue.");
+    if (!canSend) {
+      toast.warning(
+        getSelectedModelError(config) ??
+          "Please configure your chat settings to continue."
+      );
       setSettingsModalOpen(true);
       return;
     }
