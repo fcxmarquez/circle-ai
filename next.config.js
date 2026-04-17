@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ["langchain", "@langchain/openai", "@langchain/anthropic"],
   images: {
     remotePatterns: [
       {

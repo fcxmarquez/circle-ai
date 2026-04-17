@@ -1,5 +1,10 @@
 import type { StateCreator } from "zustand";
-import { DEFAULT_ENABLED_MODELS, DEFAULT_MODEL, MODEL_OPTIONS } from "@/constants/models";
+import {
+  DEFAULT_ENABLED_MODELS,
+  DEFAULT_MODEL,
+  getModelConfig,
+  MODEL_OPTIONS,
+} from "@/constants/models";
 import type { Config, StoreState } from "../types";
 
 export interface ConfigSlice {
@@ -14,6 +19,7 @@ const initialConfig: Config = {
   anthropicKey: "",
   selectedModel: DEFAULT_MODEL,
   enabledModels: [...DEFAULT_ENABLED_MODELS],
+  reasoningLevel: getModelConfig(DEFAULT_MODEL)?.reasoning.defaultLevel ?? "none",
 };
 
 export const createConfigSlice: StateCreator<
@@ -30,6 +36,18 @@ export const createConfigSlice: StateCreator<
 
       if (!updatedConfig.enabledModels) {
         updatedConfig.enabledModels = [...DEFAULT_ENABLED_MODELS];
+      }
+
+      // When the selected model changes, reset reasoning to the new model's
+      // default unless the caller explicitly set a reasoningLevel in the same
+      // update. Keeps the stored level valid for the active model's levels.
+      if (
+        newConfig.selectedModel &&
+        newConfig.selectedModel !== state.config.selectedModel &&
+        newConfig.reasoningLevel === undefined
+      ) {
+        const nextModel = getModelConfig(newConfig.selectedModel);
+        updatedConfig.reasoningLevel = nextModel?.reasoning.defaultLevel ?? "none";
       }
 
       return {
