@@ -120,3 +120,53 @@ export const MODEL_VALUES = MODEL_OPTIONS.map((option) => option.value) as [
   string,
   ...string[],
 ];
+
+type AnthropicReasoningFields = {
+  thinking?: { type: "enabled"; budget_tokens: number } | { type: "disabled" };
+};
+
+type OpenAIReasoningEffort = "minimal" | "low" | "medium" | "high";
+
+type OpenAIReasoningFields = {
+  reasoning?: { effort: OpenAIReasoningEffort };
+};
+
+export type ReasoningFields = AnthropicReasoningFields | OpenAIReasoningFields;
+
+// Minimum thinking budget accepted by Anthropic is 1024 tokens.
+const ANTHROPIC_THINKING_BUDGETS: Record<ReasoningLevel, number | null> = {
+  none: null,
+  low: 1024,
+  medium: 4096,
+  high: 10_000,
+  max: 16_000,
+};
+
+const OPENAI_REASONING_EFFORTS: Record<ReasoningLevel, OpenAIReasoningEffort> = {
+  none: "minimal",
+  low: "low",
+  medium: "medium",
+  high: "high",
+  max: "high",
+};
+
+export function getReasoningFields(
+  model: ModelDefinition,
+  level: ReasoningLevel
+): ReasoningFields {
+  if (!model.reasoning.configurable || !model.reasoning.levels.includes(level)) {
+    return {};
+  }
+
+  if (model.provider === "Anthropic") {
+    const budget = ANTHROPIC_THINKING_BUDGETS[level];
+    if (budget === null) return {};
+    return { thinking: { type: "enabled", budget_tokens: budget } };
+  }
+
+  if (model.provider === "OpenAI") {
+    return { reasoning: { effort: OPENAI_REASONING_EFFORTS[level] } };
+  }
+
+  return {};
+}

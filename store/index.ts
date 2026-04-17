@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import { DEFAULT_MODEL, getModelConfig } from "@/constants/models";
 import { createChatSlice } from "./slices/chatSlice";
 import { createConfigSlice } from "./slices/configSlice";
 import { createUISlice } from "./slices/uiSlice";
 import { createUserSlice } from "./slices/userSlice";
-import type { StoreState } from "./types";
+import type { Config, StoreState } from "./types";
 
 export const useStore = create<StoreState>()(
   devtools(
@@ -17,8 +18,16 @@ export const useStore = create<StoreState>()(
       }),
       {
         name: "chat-store",
-        version: 1,
-        migrate: (persistedState) => persistedState,
+        version: 2,
+        migrate: (persistedState, version) => {
+          const state = persistedState as { config?: Partial<Config> } | undefined;
+          if (version < 2 && state?.config && state.config.reasoningLevel === undefined) {
+            const model = state.config.selectedModel ?? DEFAULT_MODEL;
+            state.config.reasoningLevel =
+              getModelConfig(model)?.reasoning.defaultLevel ?? "none";
+          }
+          return state;
+        },
         partialize: (state) => ({
           chat: {
             conversations: state.chat.conversations,

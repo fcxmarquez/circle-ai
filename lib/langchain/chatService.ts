@@ -1,10 +1,12 @@
-import { ChatAnthropic } from "@langchain/anthropic";
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { ChatOpenAI } from "@langchain/openai";
-import { getModelConfig } from "@/constants/models";
+import { initChatModel } from "langchain";
+import {
+  getModelConfig,
+  getReasoningFields,
+  type ReasoningLevel,
+} from "@/constants/models";
 import type { ModelType } from "@/store/types";
-
-type ChatModel = ChatOpenAI | ChatAnthropic;
 
 export const DEFAULT_SYSTEM_PROMPT =
   "You are EnkiAI, a helpful and knowledgeable AI assistant.";
@@ -22,6 +24,7 @@ export interface ChatServiceConfig {
   openAIKey?: string;
   anthropicKey?: string;
   selectedModel: ModelType;
+  reasoningLevel?: ReasoningLevel;
   maxTokens?: number;
   timeoutMs?: number;
   maxRetries?: number;
@@ -34,107 +37,91 @@ export interface SendMessageStreamOptions {
   timeoutMs?: number;
 }
 
-export class ChatService {
-  private llm: ChatModel;
-  private timeoutMs: number;
-  private static instance: ChatService;
-  private static lastConfig: string | null = null;
+const PROVIDER_PREFIX: Record<"OpenAI" | "Anthropic", string> = {
+  OpenAI: "openai",
+  Anthropic: "anthropic",
+};
 
-  private constructor(config: ChatServiceConfig) {
-    const modelConfig = getModelConfig(config.selectedModel);
-
-    if (!modelConfig) {
-      throw new Error(`Unknown model: ${config.selectedModel}`);
-    }
-
-    const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
-    const temperature = config.temperature ?? DEFAULT_TEMPERATURE;
-    this.timeoutMs = timeoutMs;
-
-    switch (modelConfig.provider) {
-      case "Anthropic": {
-        if (!config.anthropicKey) {
-          throw new Error("Anthropic API key is required for Claude models.");
-        }
-
-        const anthropicOptions: {
-          apiKey: string;
-          model: string;
-          temperature?: number;
-          maxTokens?: number;
-          maxRetries?: number;
-          clientOptions?: { timeout?: number };
-        } = {
-          apiKey: config.anthropicKey,
-          model: config.selectedModel,
-          maxTokens: config.maxTokens,
-          maxRetries,
-          clientOptions: { timeout: timeoutMs },
-        };
-
-        if (modelConfig.reasoning.supportsTemperature) {
-          anthropicOptions.temperature = temperature;
-        }
-
-        this.llm = new ChatAnthropic(anthropicOptions);
-        break;
-      }
-
-      case "OpenAI": {
-        if (!config.openAIKey) {
-          throw new Error("OpenAI API key is required for OpenAI models.");
-        }
-
-        const openAIOptions: {
-          apiKey: string;
-          model: string;
-          temperature?: number;
-          maxTokens?: number;
-          maxRetries?: number;
-          timeout?: number;
-        } = {
-          apiKey: config.openAIKey,
-          model: config.selectedModel,
-          maxTokens: config.maxTokens,
-          maxRetries,
-          timeout: timeoutMs,
-        };
-
-        if (modelConfig.reasoning.supportsTemperature) {
-          openAIOptions.temperature = temperature;
-        }
-
-        this.llm = new ChatOpenAI(openAIOptions);
-        break;
-      }
-
-      case "Google": {
-        throw new Error("Google Gemini support is not yet implemented.");
-      }
-
-      default: {
-        throw new Error(`Unsupported provider: ${modelConfig.provider}`);
-      }
-    }
+async function buildChatModel(
+  config: ChatServiceConfig
+): Promise<{ llm: BaseChatModel; timeoutMs: number }> {
+  const modelConfig = getModelConfig(config.selectedModel);
+  if (!modelConfig) {
+    throw new Error(`Unknown model: ${config.selectedModel}`);
   }
 
-  public static getInstance(config: ChatServiceConfig) {
-    // Hash only fields that impact the underlying LLM instance.
+  if (modelConfig.provider === "Google") {
+    throw new Error("Google Gemini support is not yet implemented.");
+  }
+
+  const apiKey =
+    modelConfig.provider === "Anthropic" ? config.anthropicKey : config.openAIKey;
+  if (!apiKey) {
+    throw new Error(
+      modelConfig.provider === "Anthropic"
+        ? "Anthropic API key is required for Claude models."
+        : "OpenAI API key is required for OpenAI models."
+    );
+  }
+
+  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const temperature = config.temperature ?? DEFAULT_TEMPERATURE;
+  const reasoningLevel = config.reasoningLevel ?? modelConfig.reasoning.defaultLevel;
+
+  // initChatModel forwards fields to the underlying ChatOpenAI/ChatAnthropic
+  // constructor. Anthropic uses `clientOptions.timeout`; OpenAI takes `timeout`
+  // at the top level — we pass both, the unused one is ignored.
+  const fields: Record<string, unknown> = {
+    apiKey,
+    maxTokens: config.maxTokens,
+    maxRetries,
+    timeout: timeoutMs,
+    clientOptions: { timeout: timeoutMs },
+    ...getReasoningFields(modelConfig, reasoningLevel),
+  };
+
+  if (modelConfig.reasoning.supportsTemperature) {
+    fields.temperature = temperature;
+  }
+
+  const llm = await initChatModel(
+    `${PROVIDER_PREFIX[modelConfig.provider]}:${config.selectedModel}`,
+    fields
+  );
+
+  return { llm: llm as unknown as BaseChatModel, timeoutMs };
+}
+
+export class ChatService {
+  private llm: BaseChatModel;
+  private timeoutMs: number;
+  private static instance: ChatService | null = null;
+  private static lastConfig: string | null = null;
+
+  private constructor(llm: BaseChatModel, timeoutMs: number) {
+    this.llm = llm;
+    this.timeoutMs = timeoutMs;
+  }
+
+  public static async getInstance(config: ChatServiceConfig): Promise<ChatService> {
     const configHash = JSON.stringify({
       openAIKey: config.openAIKey,
       anthropicKey: config.anthropicKey,
       selectedModel: config.selectedModel,
+      reasoningLevel: config.reasoningLevel,
       maxTokens: config.maxTokens,
       timeoutMs: config.timeoutMs,
       maxRetries: config.maxRetries,
       temperature: config.temperature,
     });
-    if (configHash !== ChatService.lastConfig || !ChatService.instance) {
-      ChatService.instance = new ChatService(config);
-      ChatService.lastConfig = configHash;
+    if (ChatService.instance && configHash === ChatService.lastConfig) {
+      return ChatService.instance;
     }
 
+    const { llm, timeoutMs } = await buildChatModel(config);
+    ChatService.instance = new ChatService(llm, timeoutMs);
+    ChatService.lastConfig = configHash;
     return ChatService.instance;
   }
 

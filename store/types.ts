@@ -1,4 +1,4 @@
-import type { MODEL_VALUES } from "@/constants/models";
+import type { MODEL_VALUES, ReasoningLevel } from "@/constants/models";
 import type { ChatSlice } from "./slices/chatSlice";
 import type { ConfigSlice } from "./slices/configSlice";
 import type { UISlice } from "./slices/uiSlice";
@@ -11,6 +11,7 @@ export interface Config {
   anthropicKey: string;
   selectedModel: ModelType;
   enabledModels: ModelType[];
+  reasoningLevel: ReasoningLevel;
 }
 
 export interface UIState {

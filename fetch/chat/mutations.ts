@@ -36,10 +36,11 @@ export const useSendMessageStream = () => {
       const responseChunks: string[] = [];
 
       try {
-        const chatService = ChatService.getInstance({
+        const chatService = await ChatService.getInstance({
           openAIKey: config.openAIKey,
           anthropicKey: config.anthropicKey,
           selectedModel: config.selectedModel,
+          reasoningLevel: config.reasoningLevel,
           maxTokens,
           timeoutMs,
           maxRetries,
