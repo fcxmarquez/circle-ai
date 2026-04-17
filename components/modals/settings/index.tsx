@@ -5,6 +5,7 @@ import { Cpu, Eye, EyeOff, KeyRound, LogOut, Settings2, SunMoon } from "lucide-r
 import { useTheme } from "next-themes";
 import * as React from "react";
 import { useState } from "react";
+import type { Control } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -56,6 +57,63 @@ import { useConfig, useUserActions } from "@/store";
 import type { ModelType } from "@/store/types";
 import { createClient } from "@/utils/supabase/client";
 
+type ApiKeyFieldName = "openAIKey" | "anthropicKey" | "googleKey";
+
+type SettingsFormValues = {
+  openAIKey?: string;
+  anthropicKey?: string;
+  googleKey?: string;
+  selectedModel: string;
+  enabledModels: string[];
+};
+
+function ApiKeyField({
+  name,
+  label,
+  placeholder,
+  control,
+}: {
+  name: ApiKeyFieldName;
+  label: string;
+  placeholder: string;
+  control: Control<SettingsFormValues>;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <div className="relative">
+              <Input
+                {...field}
+                type={show ? "text" : "password"}
+                placeholder={placeholder}
+                className="pr-10"
+                autoComplete="off"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                aria-label={show ? `Hide ${label}` : `Show ${label}`}
+                onClick={() => setShow((s) => !s)}
+              >
+                {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
 interface SettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -97,12 +155,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       enabledModels: (config.enabledModels || [...DEFAULT_ENABLED_MODELS]) as ModelType[],
     });
   }, [config, form]);
-
-  const [showPasswords, setShowPasswords] = useState({
-    openAI: false,
-    anthropic: false,
-    google: false,
-  });
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const watchedValues = form.watch();
@@ -350,122 +402,23 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                 Provide the API key for your selected model. Your keys are securely stored
                 in your browser.
               </p>
-              {/* OpenAI Key */}
-              <FormField
-                control={form.control}
+              <ApiKeyField
+                control={form.control as Control<SettingsFormValues>}
                 name="openAIKey"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>OpenAI API Key</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          type={showPasswords.openAI ? "text" : "password"}
-                          placeholder="sk-..."
-                          className="pr-10"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() =>
-                            setShowPasswords((prev) => ({
-                              ...prev,
-                              openAI: !prev.openAI,
-                            }))
-                          }
-                        >
-                          {showPasswords.openAI ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="OpenAI API Key"
+                placeholder="sk-..."
               />
-              {/* Anthropic Key */}
-              <FormField
-                control={form.control}
+              <ApiKeyField
+                control={form.control as Control<SettingsFormValues>}
                 name="anthropicKey"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Anthropic API Key</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          type={showPasswords.anthropic ? "text" : "password"}
-                          placeholder="sk-ant-..."
-                          className="pr-10"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() =>
-                            setShowPasswords((prev) => ({
-                              ...prev,
-                              anthropic: !prev.anthropic,
-                            }))
-                          }
-                        >
-                          {showPasswords.anthropic ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Anthropic API Key"
+                placeholder="sk-ant-..."
               />
-              {/* Google Key */}
-              <FormField
-                control={form.control}
+              <ApiKeyField
+                control={form.control as Control<SettingsFormValues>}
                 name="googleKey"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Google API Key</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          type={showPasswords.google ? "text" : "password"}
-                          placeholder="AIza..."
-                          className="pr-10"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() =>
-                            setShowPasswords((prev) => ({
-                              ...prev,
-                              google: !prev.google,
-                            }))
-                          }
-                        >
-                          {showPasswords.google ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Google API Key"
+                placeholder="AIza..."
               />
               <div>
                 <Button type="submit" className="w-full">
