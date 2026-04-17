@@ -30,7 +30,7 @@ export const MODEL_OPTIONS: ModelDefinition[] = [
     reasoning: {
       configurable: true,
       supportsTemperature: true,
-      defaultLevel: "high",
+      defaultLevel: "none",
       levels: ["none", "low", "medium", "high", "max"],
     },
   },
@@ -139,13 +139,8 @@ type OpenAIReasoningFields = {
 
 export type ReasoningFields = AnthropicReasoningFields | OpenAIReasoningFields;
 
-// Anthropic 4.6+ models that use adaptive thinking. Opus 4.7 accepts adaptive
-// only; Sonnet 4.6 accepts both but adaptive is the non-deprecated path.
 const ANTHROPIC_ADAPTIVE_MODELS = new Set(["claude-opus-4-7", "claude-sonnet-4-6"]);
 
-// Manual extended thinking budgets. Minimum accepted by the API is 1024 tokens.
-// Used for Claude 4.5 models (Haiku 4.5, legacy Sonnet/Opus 4.5) which do not
-// support adaptive thinking.
 const ANTHROPIC_THINKING_BUDGETS: Record<ReasoningLevel, number | null> = {
   none: null,
   low: 1024,
@@ -163,8 +158,6 @@ const ANTHROPIC_ADAPTIVE_EFFORTS: Record<ReasoningLevel, AnthropicAdaptiveEffort
     max: "max",
   };
 
-// GPT-5.4 family accepts { none, low, medium, high, xhigh }. "none" is the
-// default and is the only effort where temperature/top_p are honored.
 const OPENAI_REASONING_EFFORTS: Record<ReasoningLevel, OpenAIReasoningEffort> = {
   none: "none",
   low: "low",
@@ -179,8 +172,6 @@ function getAnthropicReasoningFields(
 ): AnthropicReasoningFields {
   if (ANTHROPIC_ADAPTIVE_MODELS.has(model.value)) {
     if (level === "none") {
-      // Opus 4.7 rejects type: "disabled"; omitting the field disables thinking
-      // on every adaptive-capable model.
       return {};
     }
     const effort = ANTHROPIC_ADAPTIVE_EFFORTS[level];
@@ -212,8 +203,6 @@ export function getReasoningFields(
   return {};
 }
 
-// OpenAI GPT-5.x reasoning models only accept `temperature` when the reasoning
-// effort is "none". At higher efforts the API rejects the parameter.
 export function supportsTemperatureAtLevel(
   model: ModelDefinition,
   level: ReasoningLevel
