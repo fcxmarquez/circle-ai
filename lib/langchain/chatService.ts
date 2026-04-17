@@ -1,12 +1,13 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { initChatModel } from "langchain";
+import type { ModelProvider } from "@/constants/models";
 import {
   getModelConfig,
   getReasoningFields,
   supportsTemperatureAtLevel,
 } from "@/constants/models";
-import type { ChatMessage, ChatModelConfig } from "@/lib/chat/contracts";
+import type { ChatApiKeys, ChatMessage, ChatModelConfig } from "@/lib/chat/contracts";
 
 export const DEFAULT_SYSTEM_PROMPT =
   "You are EnkiAI, a helpful and knowledgeable AI assistant.";
@@ -15,9 +16,10 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_TEMPERATURE = 0.7;
 
-const PROVIDER_PREFIX: Record<"OpenAI" | "Anthropic", string> = {
+const PROVIDER_PREFIX: Record<"OpenAI" | "Anthropic" | "Google", string> = {
   OpenAI: "openai",
   Anthropic: "anthropic",
+  Google: "google-genai",
 };
 
 export interface StreamChatResponseOptions {
@@ -36,17 +38,15 @@ async function buildChatModel(
     throw new Error(`Unknown model: ${config.selectedModel}`);
   }
 
-  if (modelConfig.provider === "Google") {
-    throw new Error("Google Gemini support is not yet implemented.");
-  }
-
-  const apiKey =
-    modelConfig.provider === "Anthropic" ? config.anthropicKey : config.openAIKey;
+  const PROVIDER_KEY: Record<ModelProvider, keyof ChatApiKeys> = {
+    OpenAI: "openAIKey",
+    Anthropic: "anthropicKey",
+    Google: "googleKey",
+  };
+  const apiKey = config[PROVIDER_KEY[modelConfig.provider]];
   if (!apiKey) {
     throw new Error(
-      modelConfig.provider === "Anthropic"
-        ? "Anthropic API key is required for Claude models."
-        : "OpenAI API key is required for OpenAI models."
+      `${modelConfig.provider} API key is required for ${modelConfig.label}.`
     );
   }
 

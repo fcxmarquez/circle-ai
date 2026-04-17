@@ -20,6 +20,7 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 export const ChatModelConfigSchema = z.object({
   openAIKey: z.string().optional(),
   anthropicKey: z.string().optional(),
+  googleKey: z.string().optional(),
   selectedModel: z.enum(MODEL_VALUES),
   reasoningLevel: z.enum(REASONING_LEVELS).optional(),
   maxTokens: z.number().int().positive().optional(),
@@ -29,7 +30,10 @@ export const ChatModelConfigSchema = z.object({
 });
 
 export type ChatModelConfig = z.infer<typeof ChatModelConfigSchema>;
-export type ChatApiKeys = Pick<ChatModelConfig, "openAIKey" | "anthropicKey">;
+export type ChatApiKeys = Pick<
+  ChatModelConfig,
+  "openAIKey" | "anthropicKey" | "googleKey"
+>;
 export type ChatModelSelection = {
   selectedModel?: ModelValue;
   enabledModels?: readonly ModelValue[];
