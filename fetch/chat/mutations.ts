@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { type ChatMessage, ChatService } from "@/lib/langchain/chatService";
+import type { ChatMessage } from "@/lib/langchain/chatService";
 import { useConfig } from "@/store";
 
 interface SendMessageStreamVariables {
@@ -36,24 +36,54 @@ export const useSendMessageStream = () => {
       const responseChunks: string[] = [];
 
       try {
-        const chatService = await ChatService.getInstance({
-          openAIKey: config.openAIKey,
-          anthropicKey: config.anthropicKey,
-          selectedModel: config.selectedModel,
-          reasoningLevel: config.reasoningLevel,
-          maxTokens,
-          timeoutMs,
-          maxRetries,
-          temperature,
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message,
+            history,
+            systemPrompt,
+            timeoutMs,
+            config: {
+              openAIKey: config.openAIKey,
+              anthropicKey: config.anthropicKey,
+              selectedModel: config.selectedModel,
+              reasoningLevel: config.reasoningLevel,
+              maxTokens,
+              timeoutMs,
+              maxRetries,
+              temperature,
+            },
+          }),
+          signal,
         });
 
-        for await (const chunk of chatService.sendMessageStream(message, history, {
-          systemPrompt,
-          timeoutMs,
-          signal,
-        })) {
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        if (!response.body) {
+          throw new Error("No response body returned from server");
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
           responseChunks.push(chunk);
           onChunk?.(chunk);
+        }
+
+        const finalChunk = decoder.decode();
+        if (finalChunk) {
+          responseChunks.push(finalChunk);
+          onChunk?.(finalChunk);
         }
 
         const fullResponse = responseChunks.join("");

@@ -70,9 +70,6 @@ async function buildChatModel(
   const temperature = config.temperature ?? DEFAULT_TEMPERATURE;
   const reasoningLevel = config.reasoningLevel ?? modelConfig.reasoning.defaultLevel;
 
-  // initChatModel forwards fields to the underlying ChatOpenAI/ChatAnthropic
-  // constructor. Anthropic uses `clientOptions.timeout`; OpenAI takes `timeout`
-  // at the top level — we pass both, the unused one is ignored.
   const fields: Record<string, unknown> = {
     apiKey,
     maxTokens: config.maxTokens,
