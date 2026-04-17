@@ -1,34 +1,34 @@
 import type { NextRequest } from "next/server";
-import {
-  type ChatMessage,
-  ChatService,
-  type ChatServiceConfig,
-} from "@/lib/langchain/chatService";
+import { getSelectedModelError } from "@/lib/chat/config";
+import { ChatStreamRequestSchema } from "@/lib/chat/contracts";
+import { streamChatResponse } from "@/lib/langchain/chatService";
+
+function jsonError(error: string, status: number) {
+  return Response.json({ error }, { status });
+}
 
 export async function POST(req: NextRequest) {
+  let body: unknown;
   try {
-    const body = await req.json();
-    const { message, history, systemPrompt, timeoutMs, config } = body as {
-      message: string;
-      history: ChatMessage[];
-      systemPrompt?: string;
-      timeoutMs?: number;
-      config: ChatServiceConfig;
-    };
+    body = await req.json();
+  } catch {
+    return jsonError("Invalid JSON body.", 400);
+  }
 
-    if (!config || (!config.openAIKey && !config.anthropicKey)) {
-      return new Response(
-        JSON.stringify({
-          error: "Missing API key. Please check your settings.",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
+  const parsedBody = ChatStreamRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return jsonError("Invalid chat request.", 400);
+  }
 
-    const chatService = await ChatService.getInstance(config);
-    const stream = chatService.sendMessageStream(message, history, {
-      systemPrompt,
-      timeoutMs,
+  const request = parsedBody.data;
+  const selectedModelError = getSelectedModelError(request.config);
+  if (selectedModelError) {
+    return jsonError(selectedModelError, 400);
+  }
+
+  try {
+    const stream = streamChatResponse({
+      ...request,
       signal: req.signal,
     });
 
@@ -61,15 +61,11 @@ export async function POST(req: NextRequest) {
     return new Response(readable, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache",
+        "Cache-Control": "no-store",
       },
     });
   } catch (error: unknown) {
     console.error("API Chat Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonError("Failed to process chat request.", 500);
   }
 }

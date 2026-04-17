@@ -45,6 +45,13 @@ import {
   MODEL_OPTIONS,
   MODEL_VALUES,
 } from "@/constants/models";
+import {
+  getAvailableModels,
+  getConfigIssues,
+  getSelectedModelError,
+  hasAnyApiKey,
+  hasRequiredKeyForModel,
+} from "@/lib/chat/config";
 import { useConfig, useUserActions } from "@/store";
 import type { ModelType } from "@/store/types";
 import { createClient } from "@/utils/supabase/client";
@@ -96,13 +103,25 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   // eslint-disable-next-line react-hooks/incompatible-library
   const watchedValues = form.watch();
 
-  const hasAnyApiKey = Boolean(watchedValues.openAIKey || watchedValues.anthropicKey);
+  const hasConfiguredApiKey = hasAnyApiKey(watchedValues);
+  const availableEnabledModels = getAvailableModels({
+    enabledModels: watchedValues.enabledModels,
+    openAIKey: watchedValues.openAIKey,
+    anthropicKey: watchedValues.anthropicKey,
+  });
 
   React.useEffect(() => {
-    if (!hasAnyApiKey && watchedValues.enabledModels.length > 0) {
-      form.setValue("enabledModels", []);
+    if (!hasConfiguredApiKey) {
+      return;
     }
-  }, [hasAnyApiKey, watchedValues.enabledModels.length, form]);
+
+    if (
+      availableEnabledModels.length > 0 &&
+      !availableEnabledModels.includes(watchedValues.selectedModel)
+    ) {
+      form.setValue("selectedModel", availableEnabledModels[0], { shouldValidate: true });
+    }
+  }, [availableEnabledModels, form, hasConfiguredApiKey, watchedValues.selectedModel]);
 
   const handleClose = (next: boolean) => {
     onOpenChange(next);
@@ -122,27 +141,30 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   };
 
   const onSubmit = (data: z.infer<typeof settingsFormSchema>) => {
-    if (!data.openAIKey && !data.anthropicKey) {
+    if (!hasAnyApiKey(data)) {
       toast.error("Please provide at least one API key.");
       return;
     }
 
-    if (data.enabledModels.length === 0) {
+    const issues = getConfigIssues(data);
+
+    if (issues.noEnabledModels) {
       toast.error("Please enable at least one model.");
       return;
     }
 
-    if (!data.enabledModels.includes(data.selectedModel)) {
+    if (issues.selectedModelNotEnabled) {
       return toast.error("Default model must be one of the enabled models.");
     }
 
-    const atLeastOneKey = data.enabledModels.some((modelValue) => {
-      const modelConfig = MODEL_OPTIONS.find((option) => option.value === modelValue);
-      return modelConfig && data[modelConfig.requiresKey as keyof typeof data];
-    });
+    if (issues.enabledModelsMissingKeys.length > 0) {
+      toast.error("Each enabled model needs a matching provider API key.");
+      return;
+    }
 
-    if (!atLeastOneKey) {
-      toast.error("Please provide API keys for at least one provider.");
+    const selectedModelError = getSelectedModelError(data);
+    if (selectedModelError) {
+      toast.error(selectedModelError);
       return;
     }
 
@@ -158,9 +180,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
   // Prepare options for the multiple combobox
   const modelOptions: MultipleComboboxOption[] = MODEL_OPTIONS.map((option) => {
-    const hasRequiredKey = Boolean(
-      watchedValues[option.requiresKey as keyof typeof watchedValues]
-    );
+    const hasRequiredKey = hasRequiredKeyForModel(option.value, watchedValues);
     return {
       value: option.value,
       label: option.label,
@@ -171,7 +191,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   });
 
   const availableDefaultModels = MODEL_OPTIONS.filter((option) =>
-    watchedValues.enabledModels.includes(option.value)
+    availableEnabledModels.includes(option.value)
   );
 
   return (
@@ -209,18 +229,18 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             <Separator />
             {/* Model Selection Section */}
             <div
-              className={`space-y-4 ${!hasAnyApiKey ? "opacity-50 pointer-events-none" : ""}`}
+              className={`space-y-4 ${!hasConfiguredApiKey ? "opacity-50 pointer-events-none" : ""}`}
             >
               <div className="flex items-center gap-2">
                 <Cpu className="h-4 w-4" />
                 <h3 className="text-md font-medium">AI Models</h3>
-                {!hasAnyApiKey && (
+                {!hasConfiguredApiKey && (
                   <Badge variant="secondary" className="text-xs">
                     Requires API Key
                   </Badge>
                 )}
               </div>
-              {!hasAnyApiKey && (
+              {!hasConfiguredApiKey && (
                 <p className="text-sm text-muted-foreground">
                   Please provide at least one API key below to enable model selection.
                 </p>
@@ -239,9 +259,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                     <FormControl>
                       <MultipleCombobox
                         options={modelOptions}
-                        value={hasAnyApiKey ? field.value : []}
+                        value={hasConfiguredApiKey ? field.value : []}
                         onValueChange={(newValue) => {
-                          if (!hasAnyApiKey) return;
+                          if (!hasConfiguredApiKey) return;
 
                           if (newValue.length > 10) {
                             toast.error("You can select a maximum of 10 models");
@@ -259,11 +279,13 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                           }
                         }}
                         placeholder={
-                          hasAnyApiKey ? "Select AI models..." : "Provide API keys first"
+                          hasConfiguredApiKey
+                            ? "Select AI models..."
+                            : "Provide API keys first"
                         }
                         searchPlaceholder="Search models..."
                         emptyText="No models found."
-                        disabled={!hasAnyApiKey}
+                        disabled={!hasConfiguredApiKey}
                       />
                     </FormControl>
 
@@ -273,7 +295,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               />
 
               {/* Default Model Selection */}
-              {hasAnyApiKey && watchedValues.enabledModels.length > 0 && (
+              {hasConfiguredApiKey && watchedValues.enabledModels.length > 0 && (
                 <FormField
                   control={form.control}
                   name="selectedModel"

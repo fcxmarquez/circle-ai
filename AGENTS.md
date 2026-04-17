@@ -26,6 +26,9 @@ This file provides guidance to AI agent when working with code in this repositor
 
 ### Testing & Quality Assurance
 
+- `bun test` - Run all tests (unit tests in `lib/**/*.test.ts` + Storybook browser tests)
+- `bun test --project=unit` - Run only unit tests
+- `bun test --project=storybook` - Run only Storybook browser tests
 - `bun storybook` - Run Storybook development server
 - `bun build-storybook` - Build Storybook for production
 - `npx tsx --noEmit && bun lint && bun build` - Complete quality check (run this after finishing tasks)
@@ -84,12 +87,12 @@ This file provides guidance to AI agent when working with code in this repositor
 
 #### `/fetch` - API Layer
 
-- **Chat mutations**: `useSendMessage`, `useSendMessageStream` with TanStack Query
-- **Service integration**: Uses ChatService for AI model communication
+- **Query hooks**: TanStack Query is available for request/response-style data fetching
+- **Chat transport**: Streaming chat requests use `lib/chat/client.ts` and `app/api/chat/route.ts`
 
 #### `/lib` - Utilities & Services
 
-- **ChatService**: Singleton service for AI model interactions
+- **ChatService**: Stateless LangChain adapter for AI model interactions
   - Supports OpenAI (GPT, O-series) and Anthropic (Claude) models
   - Handles streaming responses and model-specific configuration
   - Reasoning models (o3, o4-mini) don't use temperature parameter
@@ -104,7 +107,8 @@ This file provides guidance to AI agent when working with code in this repositor
 
 ### AI Integration
 
-- ChatService singleton manages model instances
+- Chat transport validates shared request contracts before reaching LangChain
+- ChatService builds provider-specific LangChain models per request
 - Supports both OpenAI and Anthropic via LangChain
 - Streaming responses with chunk-by-chunk processing
 - Model-specific configuration (temperature, reasoning models)
@@ -144,6 +148,6 @@ Required environment variables:
 
 ### Testing
 
-- Vitest configured with Storybook integration
-- Browser testing with Playwright
-- Storybook for component development and testing
+- Vitest configured with two projects: `unit` (node environment, `lib/**/*.test.ts`) and `storybook` (Playwright/chromium)
+- `bun test` runs both projects; use `--project=unit` or `--project=storybook` to run one
+- Storybook for component development and visual testing

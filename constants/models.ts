@@ -1,4 +1,6 @@
-export type ReasoningLevel = "none" | "low" | "medium" | "high" | "max";
+export const REASONING_LEVELS = ["none", "low", "medium", "high", "max"] as const;
+
+export type ReasoningLevel = (typeof REASONING_LEVELS)[number];
 
 export type ModelProvider = "OpenAI" | "Anthropic" | "Google";
 
@@ -8,7 +10,7 @@ export interface ModelReasoning {
   configurable: boolean;
   supportsTemperature: boolean;
   defaultLevel: ReasoningLevel;
-  levels: ReasoningLevel[];
+  levels: readonly ReasoningLevel[];
 }
 
 export interface ModelDefinition {
@@ -20,7 +22,7 @@ export interface ModelDefinition {
   reasoning: ModelReasoning;
 }
 
-export const MODEL_OPTIONS: ModelDefinition[] = [
+export const MODEL_OPTIONS = [
   {
     value: "claude-opus-4-7",
     label: "Claude Opus 4.7",
@@ -99,10 +101,12 @@ export const MODEL_OPTIONS: ModelDefinition[] = [
       levels: ["none", "low", "medium", "high", "max"],
     },
   },
-];
+] as const satisfies readonly ModelDefinition[];
 
-export const DEFAULT_MODEL = "claude-sonnet-4-6";
-export const DEFAULT_ENABLED_MODELS = ["claude-sonnet-4-6", "gpt-5.4-mini"];
+export type ModelValue = (typeof MODEL_OPTIONS)[number]["value"];
+
+export const DEFAULT_MODEL: ModelValue = "claude-sonnet-4-6";
+export const DEFAULT_ENABLED_MODELS: ModelValue[] = ["claude-sonnet-4-6", "gpt-5.4-mini"];
 
 export function getModelConfig(modelValue: string): ModelDefinition | undefined {
   return MODEL_OPTIONS.find((m) => m.value === modelValue);
@@ -113,12 +117,12 @@ export const MODEL_LABELS = MODEL_OPTIONS.reduce(
     acc[option.value] = { label: option.label, provider: option.provider };
     return acc;
   },
-  {} as Record<string, { label: string; provider: string }>
+  {} as Record<ModelValue, { label: string; provider: ModelProvider }>
 );
 
 export const MODEL_VALUES = MODEL_OPTIONS.map((option) => option.value) as [
-  string,
-  ...string[],
+  ModelValue,
+  ...ModelValue[],
 ];
 
 type AnthropicAdaptiveEffort = "low" | "medium" | "high" | "max";
@@ -139,7 +143,10 @@ type OpenAIReasoningFields = {
 
 export type ReasoningFields = AnthropicReasoningFields | OpenAIReasoningFields;
 
-const ANTHROPIC_ADAPTIVE_MODELS = new Set(["claude-opus-4-7", "claude-sonnet-4-6"]);
+const ANTHROPIC_ADAPTIVE_MODELS = new Set<string>([
+  "claude-opus-4-7",
+  "claude-sonnet-4-6",
+]);
 
 const ANTHROPIC_THINKING_BUDGETS: Record<ReasoningLevel, number | null> = {
   none: null,
@@ -208,8 +215,10 @@ export function supportsTemperatureAtLevel(
   level: ReasoningLevel
 ): boolean {
   if (!model.reasoning.supportsTemperature) return false;
-  if (model.provider === "OpenAI" && model.reasoning.configurable && level !== "none") {
-    return false;
+  if (model.reasoning.configurable && level !== "none") {
+    if (model.provider === "OpenAI" || model.provider === "Anthropic") {
+      return false;
+    }
   }
   return true;
 }

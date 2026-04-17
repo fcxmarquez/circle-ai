@@ -1,9 +1,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useSendMessageStream } from "@/fetch/chat/mutations";
-import type { ChatMessage } from "@/lib/langchain/chatService";
-import { useChat, useChatActions } from "@/store";
+import { streamChatRequest } from "@/lib/chat/client";
+import type { ChatMessage, ChatStreamRequest } from "@/lib/chat/contracts";
+import { useChat, useChatActions, useConfig } from "@/store";
 import { useManageChunks } from "./useManageChunks";
 
 export const useCircleChat = () => {
@@ -13,16 +13,29 @@ export const useCircleChat = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
   const { currentConversationId, messages } = useChat();
+  const { config } = useConfig();
   const { createNewConversation, addMessage, setMessageStatus, deleteMessage } =
     useChatActions();
   const { accumulateChunk, flushChunks, flushIntervalRef } = useManageChunks();
-  const sendMessageStream = useSendMessageStream();
 
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
     };
   }, []);
+
+  const finishStreaming = () => {
+    abortControllerRef.current = null;
+
+    if (flushIntervalRef.current) {
+      clearInterval(flushIntervalRef.current);
+      flushIntervalRef.current = null;
+    }
+
+    flushChunks();
+    isSendingRef.current = false;
+    setIsLoading(false);
+  };
 
   const sendMessage = (message: string) => {
     if (isSendingRef.current || isLoading) {
@@ -58,53 +71,46 @@ export const useCircleChat = () => {
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-
-    sendMessageStream.mutate({
+    let hasResponse = false;
+    const request = {
       message: trimmedMessage,
       history,
+      config: {
+        openAIKey: config.openAIKey,
+        anthropicKey: config.anthropicKey,
+        selectedModel: config.selectedModel,
+        reasoningLevel: config.reasoningLevel,
+      },
+    } satisfies ChatStreamRequest;
+
+    void streamChatRequest(request, {
       signal: abortController.signal,
-      onChunk: (chunk: string) => {
+      onChunk: (chunk) => {
+        hasResponse = true;
         accumulateChunk(assistantMessage.id, chunk);
       },
-      onComplete: () => {
-        abortControllerRef.current = null;
-
-        if (flushIntervalRef.current) {
-          clearInterval(flushIntervalRef.current);
-          flushIntervalRef.current = null;
-        }
-        flushChunks();
-
-        isSendingRef.current = false;
+    })
+      .then(() => {
+        finishStreaming();
         setError(null);
-        setIsLoading(false);
-
         setMessageStatus(assistantMessage.id, "success");
 
         if (newConversationId) {
           router.replace(`/c/${newConversationId}`);
         }
-      },
-      onError: (error: Error, partialResponse: string) => {
-        abortControllerRef.current = null;
+      })
+      .catch((error: unknown) => {
+        const streamError =
+          error instanceof Error ? error : new Error("Unknown streaming error");
 
-        if (flushIntervalRef.current) {
-          clearInterval(flushIntervalRef.current);
-          flushIntervalRef.current = null;
-        }
-        flushChunks();
+        finishStreaming();
 
-        const isAborted = error.name === "AbortError";
-
-        if (isAborted) {
-          if (!partialResponse || !partialResponse.trim()) {
+        if (streamError.name === "AbortError") {
+          if (!hasResponse) {
             deleteMessage(assistantMessage.id);
           } else {
             setMessageStatus(assistantMessage.id, "success");
           }
-
-          isSendingRef.current = false;
-          setIsLoading(false);
 
           if (newConversationId) {
             router.replace(`/c/${newConversationId}`);
@@ -112,28 +118,25 @@ export const useCircleChat = () => {
           return;
         }
 
-        console.error("Streaming error:", error);
-        setError(error);
+        console.error("Streaming error:", streamError);
+        setError(streamError);
 
-        if (!partialResponse || !partialResponse.trim()) {
+        if (!hasResponse) {
           deleteMessage(assistantMessage.id);
         } else {
           setMessageStatus(assistantMessage.id, "error");
         }
 
-        const errorMessage = error.message.includes("API key")
+        const errorMessage = streamError.message.includes("API key")
           ? "Invalid API key. Please check your settings."
           : "Failed to send message. Please try again.";
 
         toast.error(errorMessage);
-        isSendingRef.current = false;
-        setIsLoading(false);
 
         if (newConversationId) {
           router.replace(`/c/${newConversationId}`);
         }
-      },
-    });
+      });
   };
 
   const stopGeneration = () => {

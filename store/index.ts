@@ -128,13 +128,11 @@ export const useConfig = () => {
   const config = useStore((state) => state.config);
   const setConfig = useStore((state) => state.setConfig);
   const clearConfig = useStore((state) => state.clearConfig);
-  const hasValidApiKey = useStore((state) => state.hasValidApiKey);
 
   return {
     config,
     setConfig,
     clearConfig,
-    hasValidApiKey,
   };
 };
 

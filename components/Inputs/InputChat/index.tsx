@@ -4,6 +4,7 @@ import { Send, Square } from "lucide-react";
 import { type FC, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { canSendSelectedModel, getSelectedModelError } from "@/lib/chat/config";
 import { cn } from "@/lib/utils";
 import { useConfig, useUIActions } from "@/store";
 
@@ -16,9 +17,11 @@ interface InputChatProps {
 export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) => {
   const [message, setMessage] = useState("");
 
-  const { hasValidApiKey } = useConfig();
+  const { config } = useConfig();
   const { setSettingsModalOpen } = useUIActions();
-  const hasApiKey = hasValidApiKey();
+  const canSend = canSendSelectedModel(config);
+  const disabledPlaceholder =
+    getSelectedModelError(config) ?? "Configure your model settings to continue";
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -44,19 +47,15 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
         <Input
           className={cn(
             "min-h-[56px] w-full rounded-xl py-8 pl-4 text-base backdrop-blur-lg bg-background/50",
-            hasApiKey ? "pr-14" : "pr-24"
+            canSend ? "pr-14" : "pr-24"
           )}
-          placeholder={
-            hasApiKey
-              ? "Message EnkiAI..."
-              : "Please configure API key in settings to continue"
-          }
+          placeholder={canSend ? "Message EnkiAI..." : disabledPlaceholder}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyPress}
-          disabled={isLoading || !hasApiKey}
+          disabled={isLoading || !canSend}
         />
-        {hasApiKey ? (
+        {canSend ? (
           isLoading ? (
             <Button
               size="icon"
@@ -91,7 +90,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
               "hover:opacity-90 transition-opacity"
             )}
             onClick={handleOpenSettings}
-            aria-label="Open settings to configure API key"
+            aria-label="Open chat settings"
           >
             Setup
           </Button>

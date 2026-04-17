@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,36 +11,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MODEL_LABELS } from "@/constants/models";
+import { getAvailableModels, getResolvedSelectedModel } from "@/lib/chat/config";
 import { useConfig } from "@/store";
 import type { ModelType } from "@/store/types";
 
 export function ModelSelector() {
-  const { config, setConfig, hasValidApiKey } = useConfig();
+  const { config, setConfig } = useConfig();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleModelSelect = (model: ModelType) => {
     setConfig({ selectedModel: model });
   };
 
-  const hasValidKeys = hasValidApiKey();
+  const availableModels = getAvailableModels(config);
+  const displayModel = getResolvedSelectedModel(config);
 
-  const getValidModels = () => {
-    if (!hasValidKeys) return [];
-
-    return (config.enabledModels || []).filter((model) => {
-      const modelInfo = MODEL_LABELS[model];
-      if (!modelInfo) return false;
-
-      if (model.startsWith("claude-")) {
-        return Boolean(config.anthropicKey);
-      } else if (model.startsWith("gpt-") || model.startsWith("o")) {
-        return Boolean(config.openAIKey);
-      }
-      return false;
-    });
-  };
-
-  const availableModels = getValidModels();
+  useEffect(() => {
+    if (displayModel && displayModel !== config.selectedModel) {
+      setConfig({ selectedModel: displayModel });
+    }
+  }, [config.selectedModel, displayModel, setConfig]);
 
   if ((config.enabledModels || []).length === 0) {
     return (
@@ -50,7 +40,7 @@ export function ModelSelector() {
     );
   }
 
-  if (!hasValidKeys || availableModels.length === 0) {
+  if (!displayModel || availableModels.length === 0) {
     return (
       <Button variant="ghost" className="text-muted-foreground cursor-not-allowed">
         No model selected
@@ -58,9 +48,6 @@ export function ModelSelector() {
     );
   }
 
-  const displayModel = availableModels.includes(config.selectedModel)
-    ? config.selectedModel
-    : availableModels[0];
   const currentModelInfo = MODEL_LABELS[displayModel];
 
   return (

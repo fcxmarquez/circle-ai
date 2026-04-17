@@ -4,10 +4,9 @@ import { initChatModel } from "langchain";
 import {
   getModelConfig,
   getReasoningFields,
-  type ReasoningLevel,
   supportsTemperatureAtLevel,
 } from "@/constants/models";
-import type { ModelType } from "@/store/types";
+import type { ChatMessage, ChatModelConfig } from "@/lib/chat/contracts";
 
 export const DEFAULT_SYSTEM_PROMPT =
   "You are EnkiAI, a helpful and knowledgeable AI assistant.";
@@ -16,35 +15,21 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_TEMPERATURE = 0.7;
 
-export interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
-export interface ChatServiceConfig {
-  openAIKey?: string;
-  anthropicKey?: string;
-  selectedModel: ModelType;
-  reasoningLevel?: ReasoningLevel;
-  maxTokens?: number;
-  timeoutMs?: number;
-  maxRetries?: number;
-  temperature?: number;
-}
-
-export interface SendMessageStreamOptions {
-  systemPrompt?: string;
-  signal?: AbortSignal;
-  timeoutMs?: number;
-}
-
 const PROVIDER_PREFIX: Record<"OpenAI" | "Anthropic", string> = {
   OpenAI: "openai",
   Anthropic: "anthropic",
 };
 
+export interface StreamChatResponseOptions {
+  message: string;
+  history?: ChatMessage[];
+  config: ChatModelConfig;
+  systemPrompt?: string;
+  signal?: AbortSignal;
+}
+
 async function buildChatModel(
-  config: ChatServiceConfig
+  config: ChatModelConfig
 ): Promise<{ llm: BaseChatModel; timeoutMs: number }> {
   const modelConfig = getModelConfig(config.selectedModel);
   if (!modelConfig) {
@@ -91,70 +76,41 @@ async function buildChatModel(
   return { llm: llm as unknown as BaseChatModel, timeoutMs };
 }
 
-export class ChatService {
-  private llm: BaseChatModel;
-  private timeoutMs: number;
-  private static instance: ChatService | null = null;
-  private static lastConfig: string | null = null;
+function convertToLangChainMessages(history: ChatMessage[]) {
+  return history.map((msg) =>
+    msg.role === "user" ? new HumanMessage(msg.content) : new AIMessage(msg.content)
+  );
+}
 
-  private constructor(llm: BaseChatModel, timeoutMs: number) {
-    this.llm = llm;
-    this.timeoutMs = timeoutMs;
-  }
-
-  public static async getInstance(config: ChatServiceConfig): Promise<ChatService> {
-    const configHash = JSON.stringify({
-      openAIKey: config.openAIKey,
-      anthropicKey: config.anthropicKey,
-      selectedModel: config.selectedModel,
-      reasoningLevel: config.reasoningLevel,
-      maxTokens: config.maxTokens,
-      timeoutMs: config.timeoutMs,
-      maxRetries: config.maxRetries,
-      temperature: config.temperature,
-    });
-    if (ChatService.instance && configHash === ChatService.lastConfig) {
-      return ChatService.instance;
-    }
+export async function* streamChatResponse({
+  message,
+  history = [],
+  config,
+  systemPrompt = DEFAULT_SYSTEM_PROMPT,
+  signal,
+}: StreamChatResponseOptions): AsyncGenerator<string, void, unknown> {
+  try {
+    const historyMessages = convertToLangChainMessages(history);
+    const messages = [
+      ...(systemPrompt.trim() ? [new SystemMessage(systemPrompt)] : []),
+      ...historyMessages,
+      new HumanMessage(message),
+    ];
 
     const { llm, timeoutMs } = await buildChatModel(config);
-    ChatService.instance = new ChatService(llm, timeoutMs);
-    ChatService.lastConfig = configHash;
-    return ChatService.instance;
-  }
+    const stream = await llm.stream(messages, {
+      timeout: timeoutMs,
+      signal,
+    });
 
-  private convertToLangChainMessages(history: ChatMessage[]) {
-    return history.map((msg) =>
-      msg.role === "user" ? new HumanMessage(msg.content) : new AIMessage(msg.content)
-    );
-  }
-
-  public async *sendMessageStream(
-    message: string,
-    history: ChatMessage[] = [],
-    options: SendMessageStreamOptions = {}
-  ): AsyncGenerator<string, void, unknown> {
-    try {
-      const historyMessages = this.convertToLangChainMessages(history);
-      const systemPrompt = options.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-      const messages = [
-        ...(systemPrompt.trim() ? [new SystemMessage(systemPrompt)] : []),
-        ...historyMessages,
-        new HumanMessage(message),
-      ];
-
-      const stream = await this.llm.stream(messages, {
-        timeout: options.timeoutMs ?? this.timeoutMs,
-        signal: options.signal,
-      });
-
-      for await (const chunk of stream) {
-        const chunkText = chunk.text;
-        if (chunkText) yield chunkText;
+    for await (const chunk of stream) {
+      const chunkText = chunk.text;
+      if (chunkText) {
+        yield chunkText;
       }
-    } catch (error) {
-      console.error("Error in streaming chat:", error);
-      throw error;
     }
+  } catch (error) {
+    console.error("Error in streaming chat:", error);
+    throw error;
   }
 }
