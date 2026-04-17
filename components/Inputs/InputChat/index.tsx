@@ -1,8 +1,7 @@
 "use client";
 
-import { Square } from "lucide-react";
+import { Send, Square } from "lucide-react";
 import { type FC, useState } from "react";
-import { IoMdSend } from "react-icons/io";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -82,7 +81,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
               disabled={!message.trim()}
               aria-label="Send message"
             >
-              <IoMdSend className="h-4 w-4" />
+              <Send className="h-4 w-4" />
             </Button>
           )
         ) : (
