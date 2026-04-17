@@ -5,6 +5,7 @@ import {
   getModelConfig,
   getReasoningFields,
   type ReasoningLevel,
+  supportsTemperatureAtLevel,
 } from "@/constants/models";
 import type { ModelType } from "@/store/types";
 
@@ -81,7 +82,7 @@ async function buildChatModel(
     ...getReasoningFields(modelConfig, reasoningLevel),
   };
 
-  if (modelConfig.reasoning.supportsTemperature) {
+  if (supportsTemperatureAtLevel(modelConfig, reasoningLevel)) {
     fields.temperature = temperature;
   }
 

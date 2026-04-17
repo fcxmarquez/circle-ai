@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { DEFAULT_MODEL, getModelConfig } from "@/constants/models";
+import {
+  DEFAULT_ENABLED_MODELS,
+  DEFAULT_MODEL,
+  getModelConfig,
+  MODEL_VALUES,
+} from "@/constants/models";
 import { createChatSlice } from "./slices/chatSlice";
 import { createConfigSlice } from "./slices/configSlice";
 import { createUISlice } from "./slices/uiSlice";
@@ -18,13 +23,31 @@ export const useStore = create<StoreState>()(
       }),
       {
         name: "chat-store",
-        version: 2,
+        version: 3,
         migrate: (persistedState, version) => {
           const state = persistedState as { config?: Partial<Config> } | undefined;
           if (version < 2 && state?.config && state.config.reasoningLevel === undefined) {
             const model = state.config.selectedModel ?? DEFAULT_MODEL;
             state.config.reasoningLevel =
               getModelConfig(model)?.reasoning.defaultLevel ?? "none";
+          }
+          if (version < 3 && state?.config) {
+            const validModels = new Set<string>(MODEL_VALUES);
+            if (
+              state.config.selectedModel &&
+              !validModels.has(state.config.selectedModel)
+            ) {
+              state.config.selectedModel = DEFAULT_MODEL;
+              state.config.reasoningLevel =
+                getModelConfig(DEFAULT_MODEL)?.reasoning.defaultLevel ?? "none";
+            }
+            if (Array.isArray(state.config.enabledModels)) {
+              const filtered = state.config.enabledModels.filter((m) =>
+                validModels.has(m)
+              );
+              state.config.enabledModels =
+                filtered.length > 0 ? filtered : [...DEFAULT_ENABLED_MODELS];
+            }
           }
           return state;
         },
