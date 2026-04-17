@@ -71,12 +71,6 @@ const settingsFormSchema = z.object({
     .max(10, "You can select a maximum of 10 models"),
 });
 
-function hasSameValues(left: readonly string[], right: readonly string[]) {
-  return (
-    left.length === right.length && left.every((value, index) => value === right[index])
-  );
-}
-
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const { config, setConfig } = useConfig();
   const { setLogout } = useUserActions();
@@ -117,18 +111,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   });
 
   React.useEffect(() => {
-    if (!hasConfiguredApiKey && watchedValues.enabledModels.length > 0) {
-      form.setValue("enabledModels", [], { shouldValidate: true });
-    }
-  }, [form, hasConfiguredApiKey, watchedValues.enabledModels.length]);
-
-  React.useEffect(() => {
     if (!hasConfiguredApiKey) {
-      return;
-    }
-
-    if (!hasSameValues(watchedValues.enabledModels, availableEnabledModels)) {
-      form.setValue("enabledModels", availableEnabledModels, { shouldValidate: true });
       return;
     }
 
@@ -138,13 +121,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     ) {
       form.setValue("selectedModel", availableEnabledModels[0], { shouldValidate: true });
     }
-  }, [
-    availableEnabledModels,
-    form,
-    hasConfiguredApiKey,
-    watchedValues.enabledModels,
-    watchedValues.selectedModel,
-  ]);
+  }, [availableEnabledModels, form, hasConfiguredApiKey, watchedValues.selectedModel]);
 
   const handleClose = (next: boolean) => {
     onOpenChange(next);

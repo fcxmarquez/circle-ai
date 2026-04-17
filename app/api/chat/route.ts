@@ -66,7 +66,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("API Chat Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return jsonError(errorMessage, 500);
+    return jsonError("Failed to process chat request.", 500);
   }
 }

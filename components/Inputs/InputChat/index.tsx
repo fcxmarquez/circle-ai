@@ -90,7 +90,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
               "hover:opacity-90 transition-opacity"
             )}
             onClick={handleOpenSettings}
-            aria-label="Open settings to configure API key"
+            aria-label="Open chat settings"
           >
             Setup
           </Button>
