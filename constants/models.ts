@@ -18,7 +18,6 @@ export interface ModelDefinition {
   label: string;
   provider: ModelProvider;
   requiresKey: ApiKeyType;
-  description: string;
   reasoning: ModelReasoning;
 }
 
@@ -28,7 +27,6 @@ export const MODEL_OPTIONS = [
     label: "Claude Opus 4.7",
     provider: "Anthropic",
     requiresKey: "anthropicKey",
-    description: "Most capable model for complex reasoning and agentic coding",
     reasoning: {
       configurable: true,
       supportsTemperature: true,
@@ -41,7 +39,6 @@ export const MODEL_OPTIONS = [
     label: "Claude Sonnet 4.6",
     provider: "Anthropic",
     requiresKey: "anthropicKey",
-    description: "Best balance of speed and intelligence",
     reasoning: {
       configurable: true,
       supportsTemperature: true,
@@ -54,7 +51,6 @@ export const MODEL_OPTIONS = [
     label: "Claude Haiku 4.5",
     provider: "Anthropic",
     requiresKey: "anthropicKey",
-    description: "Fastest Claude model with near-frontier intelligence",
     reasoning: {
       configurable: true,
       supportsTemperature: true,
@@ -67,7 +63,6 @@ export const MODEL_OPTIONS = [
     label: "GPT-5.4",
     provider: "OpenAI",
     requiresKey: "openAIKey",
-    description: "Frontier model for complex professional work",
     reasoning: {
       configurable: true,
       supportsTemperature: true,
@@ -80,7 +75,6 @@ export const MODEL_OPTIONS = [
     label: "GPT-5.4 Mini",
     provider: "OpenAI",
     requiresKey: "openAIKey",
-    description: "Balanced speed and intelligence for high-volume workloads",
     reasoning: {
       configurable: true,
       supportsTemperature: true,
@@ -93,7 +87,54 @@ export const MODEL_OPTIONS = [
     label: "GPT-5.4 Nano",
     provider: "OpenAI",
     requiresKey: "openAIKey",
-    description: "Fastest GPT model for classification and extraction",
+    reasoning: {
+      configurable: true,
+      supportsTemperature: true,
+      defaultLevel: "none",
+      levels: ["none", "low", "medium", "high", "max"],
+    },
+  },
+  {
+    value: "gemma-4-31b-it",
+    label: "Gemma 4 31B",
+    provider: "Google",
+    requiresKey: "googleKey",
+    reasoning: {
+      configurable: true,
+      supportsTemperature: true,
+      defaultLevel: "none",
+      levels: ["none", "high"],
+    },
+  },
+  {
+    value: "gemma-4-26b-a4b-it",
+    label: "Gemma 4 26B",
+    provider: "Google",
+    requiresKey: "googleKey",
+    reasoning: {
+      configurable: true,
+      supportsTemperature: true,
+      defaultLevel: "none",
+      levels: ["none", "high"],
+    },
+  },
+  {
+    value: "gemini-3-flash-preview",
+    label: "Gemini 3 Flash",
+    provider: "Google",
+    requiresKey: "googleKey",
+    reasoning: {
+      configurable: true,
+      supportsTemperature: true,
+      defaultLevel: "none",
+      levels: ["none", "low", "medium", "high", "max"],
+    },
+  },
+  {
+    value: "gemini-3.1-flash-lite-preview",
+    label: "Gemini 3.1 Flash Lite",
+    provider: "Google",
+    requiresKey: "googleKey",
     reasoning: {
       configurable: true,
       supportsTemperature: true,
@@ -141,7 +182,16 @@ type OpenAIReasoningFields = {
   reasoning?: { effort: OpenAIReasoningEffort };
 };
 
-export type ReasoningFields = AnthropicReasoningFields | OpenAIReasoningFields;
+type GoogleThinkingLevel = "LOW" | "MEDIUM" | "HIGH";
+
+type GoogleReasoningFields = {
+  thinkingConfig?: { thinkingLevel: GoogleThinkingLevel };
+};
+
+export type ReasoningFields =
+  | AnthropicReasoningFields
+  | OpenAIReasoningFields
+  | GoogleReasoningFields;
 
 const ANTHROPIC_ADAPTIVE_MODELS = new Set<string>([
   "claude-opus-4-7",
@@ -171,6 +221,14 @@ const OPENAI_REASONING_EFFORTS: Record<ReasoningLevel, OpenAIReasoningEffort> = 
   medium: "medium",
   high: "high",
   max: "xhigh",
+};
+
+const GOOGLE_THINKING_LEVELS: Record<ReasoningLevel, GoogleThinkingLevel | null> = {
+  none: null,
+  low: "LOW",
+  medium: "MEDIUM",
+  high: "HIGH",
+  max: "HIGH",
 };
 
 function getAnthropicReasoningFields(
@@ -205,6 +263,12 @@ export function getReasoningFields(
 
   if (model.provider === "OpenAI") {
     return { reasoning: { effort: OPENAI_REASONING_EFFORTS[level] } };
+  }
+
+  if (model.provider === "Google") {
+    const thinkingLevel = GOOGLE_THINKING_LEVELS[level];
+    if (!thinkingLevel) return {};
+    return { thinkingConfig: { thinkingLevel } };
   }
 
   return {};
