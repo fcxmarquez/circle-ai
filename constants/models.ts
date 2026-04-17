@@ -29,7 +29,9 @@ export const MODEL_OPTIONS: ModelDefinition[] = [
     description: "Most capable model for complex reasoning and agentic coding",
     reasoning: {
       configurable: true,
-      supportsTemperature: true,
+      // Opus 4.7 rejects any non-default temperature/top_p/top_k regardless of
+      // thinking mode — always omit the field.
+      supportsTemperature: false,
       defaultLevel: "high",
       levels: ["none", "low", "medium", "high", "max"],
     },
@@ -212,15 +214,18 @@ export function getReasoningFields(
   return {};
 }
 
-// OpenAI GPT-5.x reasoning models only accept `temperature` when the reasoning
-// effort is "none". At higher efforts the API rejects the parameter.
+// OpenAI GPT-5.x reasoning models only accept `temperature` when effort is
+// "none"; Anthropic extended thinking fixes temperature at 1 and rejects
+// other values. Omit the field in both cases at any non-"none" level.
 export function supportsTemperatureAtLevel(
   model: ModelDefinition,
   level: ReasoningLevel
 ): boolean {
   if (!model.reasoning.supportsTemperature) return false;
-  if (model.provider === "OpenAI" && model.reasoning.configurable && level !== "none") {
-    return false;
+  if (model.reasoning.configurable && level !== "none") {
+    if (model.provider === "OpenAI" || model.provider === "Anthropic") {
+      return false;
+    }
   }
   return true;
 }

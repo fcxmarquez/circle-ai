@@ -48,6 +48,18 @@ export const useStore = create<StoreState>()(
               state.config.enabledModels =
                 filtered.length > 0 ? filtered : [...DEFAULT_ENABLED_MODELS];
             }
+            // Clamp reasoningLevel in case the active model's `levels` shrank
+            // between versions (e.g., Haiku 4.5 no longer exposes "max").
+            const currentModel = getModelConfig(
+              state.config.selectedModel ?? DEFAULT_MODEL
+            );
+            if (
+              currentModel &&
+              state.config.reasoningLevel &&
+              !currentModel.reasoning.levels.includes(state.config.reasoningLevel)
+            ) {
+              state.config.reasoningLevel = currentModel.reasoning.defaultLevel;
+            }
           }
           return state;
         },

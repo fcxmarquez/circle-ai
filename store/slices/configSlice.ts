@@ -38,16 +38,20 @@ export const createConfigSlice: StateCreator<
         updatedConfig.enabledModels = [...DEFAULT_ENABLED_MODELS];
       }
 
-      // When the selected model changes, reset reasoning to the new model's
-      // default unless the caller explicitly set a reasoningLevel in the same
-      // update. Keeps the stored level valid for the active model's levels.
+      // When the selected model changes, honor a caller-supplied
+      // reasoningLevel only if the new model's `levels` include it; otherwise
+      // fall back to the new model's default so the stored level stays valid.
       if (
         newConfig.selectedModel &&
-        newConfig.selectedModel !== state.config.selectedModel &&
-        newConfig.reasoningLevel === undefined
+        newConfig.selectedModel !== state.config.selectedModel
       ) {
         const nextModel = getModelConfig(newConfig.selectedModel);
-        updatedConfig.reasoningLevel = nextModel?.reasoning.defaultLevel ?? "none";
+        const fallback = nextModel?.reasoning.defaultLevel ?? "none";
+        const requested = newConfig.reasoningLevel;
+        updatedConfig.reasoningLevel =
+          requested && nextModel?.reasoning.levels.includes(requested)
+            ? requested
+            : fallback;
       }
 
       return {
