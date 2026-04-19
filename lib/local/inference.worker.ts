@@ -105,6 +105,11 @@ async function getPipeline(
     },
   })) as TextGenerationPipeline;
 
+  if (!pipe.tokenizer.chat_template && modelId.toLowerCase().includes("gemma")) {
+    pipe.tokenizer.chat_template =
+      "{% if messages[0]['role'] == 'system' %}{% set loop_messages = messages[1:] %}{% set system_message = messages[0]['content'] %}{% else %}{% set loop_messages = messages %}{% set system_message = '' %}{% endif %}{{ bos_token }}{% for message in loop_messages %}{% if loop.index0 == 0 and system_message != '' %}{% set content = system_message + '\\n\\n' + message['content'] %}{% else %}{% set content = message['content'] %}{% endif %}{% if message['role'] == 'user' %}{{ '<start_of_turn>user\\n' + content + '<end_of_turn>\\n' }}{% elif message['role'] == 'model' or message['role'] == 'assistant' %}{{ '<start_of_turn>model\\n' + content + '<end_of_turn>\\n' }}{% endif %}{% endfor %}{% if add_generation_prompt %}{{ '<start_of_turn>model\\n' }}{% endif %}";
+  }
+
   cached = { key, pipeline: pipe };
   return pipe;
 }
@@ -135,11 +140,16 @@ scope.addEventListener("message", async (event: MessageEvent<IncomingMessage>) =
         if (abortedRequests.has(requestId)) {
           throw new AbortedError();
         }
-        scope.postMessage({
-          type: "chunk",
-          requestId,
-          text,
-        } satisfies OutgoingChunkMessage);
+
+        const cleanText = text.replace(/<end_of_turn>|<start_of_turn>|<bos>|<eos>/g, "");
+
+        if (cleanText) {
+          scope.postMessage({
+            type: "chunk",
+            requestId,
+            text: cleanText,
+          } satisfies OutgoingChunkMessage);
+        }
       },
     });
 
