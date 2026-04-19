@@ -76,6 +76,9 @@ export async function streamLocalChatRequest(
   return new Promise<string>((resolve, reject) => {
     const handleAbort = () => {
       w.postMessage({ type: "abort", requestId });
+      const error = new Error("Aborted");
+      error.name = "AbortError";
+      rejectFromOutside(error);
     };
 
     const cleanup = () => {
