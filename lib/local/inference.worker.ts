@@ -10,6 +10,11 @@ import {
 
 env.allowLocalModels = false;
 
+// Optimize for mobile and prevent WASM memory crashes on iOS Safari/WebKit
+if (env.backends?.onnx?.wasm) {
+  env.backends.onnx.wasm.numThreads = 1;
+}
+
 interface GenerateMessage {
   type: "generate";
   requestId: string;
