@@ -12,25 +12,25 @@ export interface LocalModelSpec {
 
 export const LOCAL_MODEL_SPECS: Record<LocalModelTier, LocalModelSpec> = {
   "local-high": {
-    modelId: "onnx-community/gemma-4-E4B-it-ONNX",
+    modelId: "onnx-community/gemma-4-E2B-it-ONNX",
     device: "webgpu",
     dtype: "q4f16",
-    label: "Gemma 4 E4B",
-    approximateSizeMB: 1500,
+    label: "Gemma 4 E2B",
+    approximateSizeMB: 3000,
   },
   "local-low": {
     modelId: "onnx-community/Qwen3.5-0.8B-ONNX",
     device: "webgpu",
     dtype: "q4",
     label: "Qwen 3.5 0.8B",
-    approximateSizeMB: 500,
+    approximateSizeMB: 700,
   },
   cpu: {
     modelId: "HuggingFaceTB/SmolLM2-135M-Instruct",
     device: "wasm",
     dtype: "q4",
     label: "SmolLM2 135M",
-    approximateSizeMB: 90,
+    approximateSizeMB: 200,
   },
 };
 
@@ -44,11 +44,11 @@ export async function detectModelTier(): Promise<LocalModelTier> {
 
   const nav = navigator as NavigatorWithGPU;
   const hasWebGPU = Boolean(nav.gpu);
-  const memory = nav.deviceMemory ?? 2;
-  const cores = nav.hardwareConcurrency ?? 2;
+  const memory = nav.deviceMemory ?? 0;
+  const cores = nav.hardwareConcurrency ?? 0;
 
-  if (hasWebGPU && memory >= 4 && cores >= 4) return "local-high";
-  if (hasWebGPU && memory >= 2) return "local-low";
+  if (hasWebGPU && memory >= 8 && cores >= 4) return "local-high";
+  if (hasWebGPU && memory >= 4) return "local-low";
   return "cpu";
 }
 
