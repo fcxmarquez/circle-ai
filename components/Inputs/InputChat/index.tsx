@@ -49,7 +49,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
             "min-h-[56px] w-full rounded-xl py-8 pl-4 text-base backdrop-blur-lg bg-background/50",
             canSend ? "pr-14" : "pr-24"
           )}
-          placeholder={canSend ? "Message EnkiAI..." : disabledPlaceholder}
+          placeholder={canSend ? "Ask anything" : disabledPlaceholder}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyPress}
@@ -59,7 +59,6 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
           isLoading ? (
             <Button
               size="icon"
-              variant="destructive"
               className={cn(
                 "absolute right-2 h-10 w-10 rounded-lg",
                 "hover:opacity-90 transition-opacity"
