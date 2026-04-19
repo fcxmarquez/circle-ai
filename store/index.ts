@@ -23,7 +23,7 @@ export const useStore = create<StoreState>()(
       }),
       {
         name: "chat-store",
-        version: 4,
+        version: 5,
         migrate: (persistedState, version) => {
           const state = persistedState as { config?: Partial<Config> } | undefined;
           if (version < 2 && state?.config && state.config.reasoningLevel === undefined) {
@@ -51,6 +51,14 @@ export const useStore = create<StoreState>()(
           }
           if (version < 4 && state?.config && state.config.googleKey === undefined) {
             state.config.googleKey = "";
+          }
+          if (version < 5 && state?.config) {
+            const enabled = Array.isArray(state.config.enabledModels)
+              ? state.config.enabledModels
+              : [];
+            if (!enabled.includes("local-auto")) {
+              state.config.enabledModels = ["local-auto", ...enabled];
+            }
           }
           return state;
         },

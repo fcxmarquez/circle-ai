@@ -2,7 +2,7 @@ export const REASONING_LEVELS = ["none", "low", "medium", "high", "max"] as cons
 
 export type ReasoningLevel = (typeof REASONING_LEVELS)[number];
 
-export type ModelProvider = "OpenAI" | "Anthropic" | "Google";
+export type ModelProvider = "OpenAI" | "Anthropic" | "Google" | "Local";
 
 export type ApiKeyType = "openAIKey" | "anthropicKey" | "googleKey";
 
@@ -17,11 +17,23 @@ export interface ModelDefinition {
   value: string;
   label: string;
   provider: ModelProvider;
-  requiresKey: ApiKeyType;
+  requiresKey: ApiKeyType | null;
   reasoning: ModelReasoning;
 }
 
 export const MODEL_OPTIONS = [
+  {
+    value: "local-auto",
+    label: "Local model",
+    provider: "Local",
+    requiresKey: null,
+    reasoning: {
+      configurable: false,
+      supportsTemperature: false,
+      defaultLevel: "none",
+      levels: ["none"],
+    },
+  },
   {
     value: "claude-opus-4-7",
     label: "Claude Opus 4.7",
@@ -146,8 +158,16 @@ export const MODEL_OPTIONS = [
 
 export type ModelValue = (typeof MODEL_OPTIONS)[number]["value"];
 
-export const DEFAULT_MODEL: ModelValue = "claude-sonnet-4-6";
-export const DEFAULT_ENABLED_MODELS: ModelValue[] = ["claude-sonnet-4-6", "gpt-5.4-mini"];
+export const DEFAULT_MODEL: ModelValue = "local-auto";
+export const DEFAULT_ENABLED_MODELS: ModelValue[] = [
+  "local-auto",
+  "claude-sonnet-4-6",
+  "gpt-5.4-mini",
+];
+
+export function isLocalModel(modelValue: string): boolean {
+  return getModelConfig(modelValue)?.provider === "Local";
+}
 
 export function getModelConfig(modelValue: string): ModelDefinition | undefined {
   return MODEL_OPTIONS.find((m) => m.value === modelValue);
