@@ -59,11 +59,23 @@ export function LocalModelConsentDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:justify-center">
-          <AlertDialogCancel onClick={onAddApiKey} className="gap-2">
+          <AlertDialogCancel
+            onClick={(e) => {
+              e.preventDefault();
+              onAddApiKey();
+            }}
+            className="gap-2"
+          >
             <KeyRound className="h-4 w-4" />
             Add API key instead
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="gap-2">
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              onConfirm();
+            }}
+            className="gap-2"
+          >
             <Download className="h-4 w-4" />
             Download & continue
           </AlertDialogAction>
