@@ -34,9 +34,11 @@ export function getRequiredApiKey(modelValue: string): ApiKeyType | null {
 }
 
 export function hasRequiredKeyForModel(modelValue: string, config: ChatApiKeys): boolean {
-  const requiredKey = getRequiredApiKey(modelValue);
-  if (!isSupportedApiKey(requiredKey)) return false;
-  return hasValue(config[requiredKey]);
+  const modelConfig = getModelConfig(modelValue);
+  if (!modelConfig) return false;
+  if (modelConfig.requiresKey === null) return true;
+  if (!isSupportedApiKey(modelConfig.requiresKey)) return false;
+  return hasValue(config[modelConfig.requiresKey]);
 }
 
 export function getAvailableModels(config: ChatSelectionConfig): ModelValue[] {

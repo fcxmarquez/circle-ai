@@ -1,25 +1,30 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { initChatModel } from "langchain";
-import type { ModelProvider } from "@/constants/models";
 import {
   getModelConfig,
   getReasoningFields,
   supportsTemperatureAtLevel,
 } from "@/constants/models";
 import type { ChatApiKeys, ChatMessage, ChatModelConfig } from "@/lib/chat/contracts";
-
-export const DEFAULT_SYSTEM_PROMPT =
-  "You are EnkiAI, a helpful and knowledgeable AI assistant.";
+import { DEFAULT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_TEMPERATURE = 0.7;
 
-const PROVIDER_PREFIX: Record<"OpenAI" | "Anthropic" | "Google", string> = {
+type CloudProvider = "OpenAI" | "Anthropic" | "Google";
+
+const PROVIDER_PREFIX: Record<CloudProvider, string> = {
   OpenAI: "openai",
   Anthropic: "anthropic",
   Google: "google-genai",
+};
+
+const PROVIDER_KEY: Record<CloudProvider, keyof ChatApiKeys> = {
+  OpenAI: "openAIKey",
+  Anthropic: "anthropicKey",
+  Google: "googleKey",
 };
 
 export interface StreamChatResponseOptions {
@@ -38,16 +43,16 @@ async function buildChatModel(
     throw new Error(`Unknown model: ${config.selectedModel}`);
   }
 
-  const PROVIDER_KEY: Record<ModelProvider, keyof ChatApiKeys> = {
-    OpenAI: "openAIKey",
-    Anthropic: "anthropicKey",
-    Google: "googleKey",
-  };
-  const apiKey = config[PROVIDER_KEY[modelConfig.provider]];
-  if (!apiKey) {
+  if (modelConfig.provider === "Local") {
     throw new Error(
-      `${modelConfig.provider} API key is required for ${modelConfig.label}.`
+      `${modelConfig.label} runs in the browser and cannot be used server-side.`
     );
+  }
+
+  const provider = modelConfig.provider;
+  const apiKey = config[PROVIDER_KEY[provider]];
+  if (!apiKey) {
+    throw new Error(`${provider} API key is required for ${modelConfig.label}.`);
   }
 
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -69,7 +74,7 @@ async function buildChatModel(
   }
 
   const llm = await initChatModel(
-    `${PROVIDER_PREFIX[modelConfig.provider]}:${config.selectedModel}`,
+    `${PROVIDER_PREFIX[provider]}:${config.selectedModel}`,
     fields
   );
 
