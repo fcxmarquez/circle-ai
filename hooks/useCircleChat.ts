@@ -5,6 +5,7 @@ import { isLocalModel } from "@/constants/models";
 import { streamChatRequest } from "@/lib/chat/client";
 import type { ChatMessage, ChatStreamRequest } from "@/lib/chat/contracts";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
+import type { LocalModelSpec } from "@/lib/local/capabilities";
 import { resolveLocalModelSpec } from "@/lib/local/capabilities";
 import { streamLocalChatRequest } from "@/lib/local/localTransport";
 import { useChat, useChatActions, useConfig } from "@/store";
@@ -13,12 +14,13 @@ import { useManageChunks } from "./useManageChunks";
 const LOCAL_DOWNLOAD_TOAST_ID = "local-model-download";
 
 async function runLocalStream(options: {
+  spec?: LocalModelSpec;
   message: string;
   history: ChatMessage[];
   signal: AbortSignal;
   onChunk: (chunk: string) => void;
 }): Promise<string> {
-  const spec = await resolveLocalModelSpec();
+  const spec = options.spec ?? (await resolveLocalModelSpec());
   let downloadToastShown = false;
 
   const payload = [
@@ -37,7 +39,11 @@ async function runLocalStream(options: {
       onProgress: (progress) => {
         if (progress.status === "progress" && !downloadToastShown) {
           downloadToastShown = true;
-          toast.loading(`Downloading ${spec.label} (~${spec.approximateSizeMB}MB)…`, {
+          const sizeLabel =
+            spec.approximateSizeMB >= 1000
+              ? `~${(spec.approximateSizeMB / 1000).toFixed(1)} GB`
+              : `~${spec.approximateSizeMB} MB`;
+          toast.loading(`Downloading ${spec.label} (${sizeLabel})…`, {
             id: LOCAL_DOWNLOAD_TOAST_ID,
             description: "First-run only. The model is cached for future messages.",
           });
@@ -82,7 +88,7 @@ export const useCircleChat = () => {
     setIsLoading(false);
   };
 
-  const sendMessage = (message: string) => {
+  const sendMessage = (message: string, localSpec?: LocalModelSpec) => {
     if (isSendingRef.current || isLoading) {
       return;
     }
@@ -122,6 +128,7 @@ export const useCircleChat = () => {
 
     const streamPromise = useLocal
       ? runLocalStream({
+          spec: localSpec,
           message: trimmedMessage,
           history,
           signal: abortController.signal,

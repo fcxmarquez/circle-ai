@@ -74,8 +74,11 @@ export const ChatArea = () => {
     }
 
     if (isLocalModel(config.selectedModel)) {
-      const confirmed = await consent.requestConsent();
-      if (!confirmed) return;
+      const spec = await consent.requestConsent();
+      if (!spec) return;
+      sendMessage(message, spec);
+      scheduleScrollToBottom("smooth");
+      return;
     }
 
     sendMessage(message);

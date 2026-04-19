@@ -8,14 +8,17 @@ export function useLocalModelConsent() {
   const [spec, setSpec] = useState<LocalModelSpec | null>(null);
   const resolverRef = useRef<((ok: boolean) => void) | null>(null);
 
-  const requestConsent = async (): Promise<boolean> => {
-    if (hasLocalModelConsent()) return true;
+  // Returns the resolved spec on success, null if the user cancelled.
+  // Resolves the spec once here so callers don't need to re-resolve.
+  const requestConsent = async (): Promise<LocalModelSpec | null> => {
     const resolved = await resolveLocalModelSpec();
+    if (hasLocalModelConsent()) return resolved;
     setSpec(resolved);
     setOpen(true);
-    return new Promise((resolve) => {
+    const confirmed = await new Promise<boolean>((resolve) => {
       resolverRef.current = resolve;
     });
+    return confirmed ? resolved : null;
   };
 
   const confirm = () => {
