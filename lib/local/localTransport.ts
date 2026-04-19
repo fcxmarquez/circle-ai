@@ -16,8 +16,11 @@ export interface StreamLocalChatOptions {
   onProgress?: (progress: ProgressInfo) => void;
 }
 
+const TRANSFORMERS_CACHE_KEY = "transformers-cache";
+
 let worker: Worker | null = null;
 let requestCounter = 0;
+const pendingRejecters = new Set<(error: Error) => void>();
 
 function getWorker(): Worker {
   if (typeof window === "undefined") {
@@ -32,6 +35,27 @@ function getWorker(): Worker {
   }
 
   return worker;
+}
+
+export async function clearLocalModelCache(): Promise<void> {
+  if (worker) {
+    if (pendingRejecters.size > 0) {
+      const error = new Error("Aborted");
+      error.name = "AbortError";
+      for (const reject of pendingRejecters) {
+        reject(error);
+      }
+      pendingRejecters.clear();
+    }
+    worker.terminate();
+    worker = null;
+  }
+  if (typeof caches === "undefined") return;
+  try {
+    await caches.delete(TRANSFORMERS_CACHE_KEY);
+  } catch {
+    // Best-effort cleanup; ignore failures (e.g. blocked by storage policy).
+  }
 }
 
 export async function streamLocalChatRequest(
@@ -55,9 +79,16 @@ export async function streamLocalChatRequest(
     };
 
     const cleanup = () => {
+      pendingRejecters.delete(rejectFromOutside);
       w.removeEventListener("message", handleMessage);
       signal?.removeEventListener("abort", handleAbort);
     };
+
+    const rejectFromOutside = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+    pendingRejecters.add(rejectFromOutside);
 
     function handleMessage(event: MessageEvent<WorkerOutgoingMessage>) {
       const data = event.data;

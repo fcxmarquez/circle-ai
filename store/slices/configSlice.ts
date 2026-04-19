@@ -4,6 +4,8 @@ import {
   DEFAULT_MODEL,
   getModelConfig,
 } from "@/constants/models";
+import { hasAnyApiKey } from "@/lib/chat/config";
+import { clearLocalModelCache } from "@/lib/local/localTransport";
 import type { Config, StoreState } from "../types";
 
 export interface ConfigSlice {
@@ -26,10 +28,12 @@ export const createConfigSlice: StateCreator<
   [["zustand/devtools", never]],
   [],
   ConfigSlice
-> = (set) => ({
+> = (set, get) => ({
   config: initialConfig,
 
-  setConfig: (newConfig) =>
+  setConfig: (newConfig) => {
+    const prevConfig = get().config;
+
     set((state) => {
       const updatedConfig = { ...state.config, ...newConfig };
 
@@ -62,7 +66,12 @@ export const createConfigSlice: StateCreator<
       return {
         config: updatedConfig,
       };
-    }),
+    });
+
+    if (!hasAnyApiKey(prevConfig) && hasAnyApiKey(get().config)) {
+      void clearLocalModelCache();
+    }
+  },
 
   clearConfig: () =>
     set(() => ({
