@@ -43,11 +43,12 @@ export async function detectModelTier(): Promise<LocalModelTier> {
   if (typeof navigator === "undefined") return "cpu";
 
   const nav = navigator as NavigatorWithGPU;
-  const hasWebGPU = Boolean(nav.gpu);
-  const memory = nav.deviceMemory ?? 0;
+  if (!nav.gpu) return "cpu";
 
-  if (hasWebGPU && memory >= 8) return "local-high";
-  if (hasWebGPU && memory >= 4) return "local-low";
+  const memory = nav.deviceMemory;
+  if (memory === undefined) return "local-low";
+  if (memory >= 8) return "local-high";
+  if (memory >= 4) return "local-low";
   return "cpu";
 }
 
