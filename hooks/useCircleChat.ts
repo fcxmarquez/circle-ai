@@ -11,7 +11,7 @@ import { streamLocalChatRequest } from "@/lib/local/localTransport";
 import { useChat, useChatActions, useConfig } from "@/store";
 import { useManageChunks } from "./useManageChunks";
 
-const LOCAL_DOWNLOAD_TOAST_ID = "local-model-download";
+export type LocalModelStatus = "idle" | "downloading" | "loading-cache" | "ready";
 
 async function runLocalStream(options: {
   spec?: LocalModelSpec;
@@ -19,9 +19,9 @@ async function runLocalStream(options: {
   history: ChatMessage[];
   signal: AbortSignal;
   onChunk: (chunk: string) => void;
+  onModelStatus: (status: LocalModelStatus, spec: LocalModelSpec) => void;
 }): Promise<string> {
   const spec = options.spec ?? (await resolveLocalModelSpec());
-  let downloadToastShown = false;
 
   const payload = [
     { role: "system", content: DEFAULT_SYSTEM_PROMPT },
@@ -29,37 +29,33 @@ async function runLocalStream(options: {
     { role: "user", content: options.message },
   ];
 
-  try {
-    return await streamLocalChatRequest({
-      spec,
-      messages: payload,
-      signal: options.signal,
-      onChunk: options.onChunk,
+  return await streamLocalChatRequest({
+    spec,
+    messages: payload,
+    signal: options.signal,
+    onChunk: options.onChunk,
 
-      onProgress: (progress) => {
-        if (progress.status === "progress" && !downloadToastShown) {
-          downloadToastShown = true;
-          const sizeLabel =
-            spec.approximateSizeMB >= 1000
-              ? `~${(spec.approximateSizeMB / 1000).toFixed(1)} GB`
-              : `~${spec.approximateSizeMB} MB`;
-          toast.loading(`Downloading ${spec.label} (${sizeLabel})…`, {
-            id: LOCAL_DOWNLOAD_TOAST_ID,
-            description: "First-run only. The model is cached for future messages.",
-          });
-        }
-      },
-    });
-  } finally {
-    if (downloadToastShown) {
-      toast.dismiss(LOCAL_DOWNLOAD_TOAST_ID);
-    }
-  }
+    onProgress: (progress) => {
+      const cacheKey = `enki-model-downloaded-${spec.modelId}`;
+
+      if (progress.status === "ready") {
+        localStorage.setItem(cacheKey, "true");
+        options.onModelStatus("ready", spec);
+      }
+
+      if (progress.status === "download") {
+        const isCached = !!localStorage.getItem(cacheKey);
+        options.onModelStatus(isCached ? "loading-cache" : "downloading", spec);
+      }
+    },
+  });
 }
 
 export const useCircleChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [localModelStatus, setLocalModelStatus] = useState<LocalModelStatus>("idle");
+  const [localModelSpec, setLocalModelSpec] = useState<LocalModelSpec | null>(null);
   const isSendingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
@@ -86,6 +82,7 @@ export const useCircleChat = () => {
     flushChunks();
     isSendingRef.current = false;
     setIsLoading(false);
+    setLocalModelStatus("idle");
   };
 
   const sendMessage = (message: string, localSpec?: LocalModelSpec) => {
@@ -135,6 +132,10 @@ export const useCircleChat = () => {
           onChunk: (chunk: string) => {
             hasResponse = true;
             accumulateChunk(assistantMessage.id, chunk);
+          },
+          onModelStatus: (status, spec) => {
+            setLocalModelStatus(status);
+            setLocalModelSpec(spec);
           },
         })
       : streamChatRequest(
@@ -221,5 +222,7 @@ export const useCircleChat = () => {
     sendMessage,
     stopGeneration,
     isLoading,
+    localModelStatus,
+    localModelSpec,
   };
 };

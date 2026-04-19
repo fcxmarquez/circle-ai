@@ -24,8 +24,16 @@ export const ChatArea = () => {
   const { setSettingsModalOpen } = useUIActions();
   const { config } = useConfig();
   const canSend = canSendSelectedModel(config);
-  const { sendMessage, stopGeneration, isLoading, messages, isError, error } =
-    useCircleChat();
+  const {
+    sendMessage,
+    stopGeneration,
+    isLoading,
+    messages,
+    isError,
+    error,
+    localModelStatus,
+    localModelSpec,
+  } = useCircleChat();
   const consent = useLocalModelConsent();
   // TEMP: Disabled for rebuild - FCX-30
   // const [hasSession, setHasSession] = useState<boolean | null>(null);
@@ -44,6 +52,30 @@ export const ChatArea = () => {
     followKey,
     isLoading,
   });
+
+  useEffect(() => {
+    if (!localModelSpec) return;
+
+    const LOCAL_DOWNLOAD_TOAST_ID = "local-model-download";
+    const sizeLabel =
+      localModelSpec.approximateSizeMB >= 1000
+        ? `~${(localModelSpec.approximateSizeMB / 1000).toFixed(1)} GB`
+        : `~${localModelSpec.approximateSizeMB} MB`;
+
+    if (localModelStatus === "downloading") {
+      toast.loading(`Downloading ${localModelSpec.label} (${sizeLabel})…`, {
+        id: LOCAL_DOWNLOAD_TOAST_ID,
+        description: "First-run only. The model is cached for future messages.",
+      });
+    } else if (localModelStatus === "loading-cache") {
+      toast.loading(`Loading ${localModelSpec.label} from cache…`, {
+        id: LOCAL_DOWNLOAD_TOAST_ID,
+        description: "Warming up the local model.",
+      });
+    } else if (localModelStatus === "ready" || localModelStatus === "idle") {
+      toast.dismiss(LOCAL_DOWNLOAD_TOAST_ID);
+    }
+  }, [localModelStatus, localModelSpec]);
 
   useEffect(() => {
     if (isError && error?.message?.includes("API key")) {
