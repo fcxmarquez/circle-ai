@@ -33,6 +33,7 @@ async function runLocalStream(options: {
       messages: payload,
       signal: options.signal,
       onChunk: options.onChunk,
+
       onProgress: (progress) => {
         if (progress.status === "progress" && !downloadToastShown) {
           downloadToastShown = true;

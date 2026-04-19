@@ -9,9 +9,12 @@ import { Thread } from "@/components/chat/Thread";
 import { InputChat } from "@/components/Inputs/InputChat";
 // TEMP: Disabled for rebuild - FCX-30
 // import { ModalLogin } from "@/components/Modals/ChakraModals/Login";
+import { LocalModelConsentDialog } from "@/components/modals/local-model-consent";
+import { isLocalModel } from "@/constants/models";
 import { colors } from "@/constants/systemDesign/colors";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { useCircleChat } from "@/hooks/useCircleChat";
+import { useLocalModelConsent } from "@/hooks/useLocalModelConsent";
 import { canSendSelectedModel, getSelectedModelError } from "@/lib/chat/config";
 import { useConfig, useUIActions } from "@/store";
 
@@ -23,6 +26,7 @@ export const ChatArea = () => {
   const canSend = canSendSelectedModel(config);
   const { sendMessage, stopGeneration, isLoading, messages, isError, error } =
     useCircleChat();
+  const consent = useLocalModelConsent();
   // TEMP: Disabled for rebuild - FCX-30
   // const [hasSession, setHasSession] = useState<boolean | null>(null);
 
@@ -67,6 +71,11 @@ export const ChatArea = () => {
       );
       setSettingsModalOpen(true);
       return;
+    }
+
+    if (isLocalModel(config.selectedModel)) {
+      const confirmed = await consent.requestConsent();
+      if (!confirmed) return;
     }
 
     sendMessage(message);
@@ -125,6 +134,17 @@ export const ChatArea = () => {
           onStop={stopGeneration}
         />
       </div>
+
+      <LocalModelConsentDialog
+        open={consent.open}
+        spec={consent.spec}
+        onConfirm={consent.confirm}
+        onCancel={consent.cancel}
+        onAddApiKey={() => {
+          consent.cancel();
+          setSettingsModalOpen(true);
+        }}
+      />
     </div>
   );
 };
