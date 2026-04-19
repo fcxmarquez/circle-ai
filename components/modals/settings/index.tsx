@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Cpu, Eye, EyeOff, KeyRound, LogOut, Settings2, SunMoon } from "lucide-react";
+import { Cpu, Eye, EyeOff, KeyRound, LogOut, Settings2, SunMoon, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";
 import { useState } from "react";
@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import type { ModelValue } from "@/constants/models";
 import {
   DEFAULT_ENABLED_MODELS,
   DEFAULT_MODEL,
@@ -49,7 +50,6 @@ import {
 import {
   getAvailableModels,
   getConfigIssues,
-  getSelectedModelError,
   hasRequiredKeyForModel,
 } from "@/lib/chat/config";
 import { useConfig, useUserActions } from "@/store";
@@ -91,19 +91,33 @@ function ApiKeyField({
                 {...field}
                 type={show ? "text" : "password"}
                 placeholder={placeholder}
-                className="pr-10"
+                className={field.value ? "pr-20" : "pr-10"}
                 autoComplete="off"
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                aria-label={show ? `Hide ${label}` : `Show ${label}`}
-                onClick={() => setShow((s) => !s)}
-              >
-                {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
+              <div className="absolute right-0 top-0 h-full flex items-center">
+                {field.value && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-full px-2 hover:bg-transparent"
+                    aria-label={`Clear ${label}`}
+                    onClick={() => field.onChange("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-full px-3 hover:bg-transparent"
+                  aria-label={show ? `Hide ${label}` : `Show ${label}`}
+                  onClick={() => setShow((s) => !s)}
+                >
+                  {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </FormControl>
           <FormMessage />
@@ -194,32 +208,28 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const onSubmit = (data: z.infer<typeof settingsFormSchema>) => {
     const issues = getConfigIssues(data);
 
-    if (issues.noEnabledModels) {
+    const enabledModels =
+      issues.enabledModelsMissingKeys.length > 0
+        ? data.enabledModels.filter(
+            (m) => !issues.enabledModelsMissingKeys.includes(m as ModelValue)
+          )
+        : data.enabledModels;
+
+    if (enabledModels.length === 0) {
       toast.error("Please enable at least one model.");
       return;
     }
 
-    if (issues.selectedModelNotEnabled) {
-      return toast.error("Default model must be one of the enabled models.");
-    }
-
-    if (issues.enabledModelsMissingKeys.length > 0) {
-      toast.error("Each enabled model needs a matching provider API key.");
-      return;
-    }
-
-    const selectedModelError = getSelectedModelError(data);
-    if (selectedModelError) {
-      toast.error(selectedModelError);
-      return;
-    }
+    const selectedModel = enabledModels.includes(data.selectedModel)
+      ? data.selectedModel
+      : enabledModels[0];
 
     setConfig({
       openAIKey: data.openAIKey || "",
       anthropicKey: data.anthropicKey || "",
       googleKey: data.googleKey || "",
-      selectedModel: data.selectedModel as ModelType,
-      enabledModels: data.enabledModels as ModelType[],
+      selectedModel: selectedModel as ModelType,
+      enabledModels: enabledModels as ModelType[],
     });
     handleClose(false);
     toast.success("Settings saved successfully");
