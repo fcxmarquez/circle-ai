@@ -1,2 +1,2 @@
 export const DEFAULT_SYSTEM_PROMPT =
-  "You are EnkiAI, a helpful and knowledgeable AI assistant.";
+  "You are Circle, a helpful and knowledgeable AI assistant.";

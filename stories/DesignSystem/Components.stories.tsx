@@ -81,7 +81,7 @@ const Components = () => {
       style={{ padding: "24px", fontFamily: "system-ui, sans-serif", maxWidth: "1000px" }}
     >
       <h1 style={{ marginBottom: "32px", fontSize: "24px", fontWeight: "bold" }}>
-        EnkiAI Component Library
+        Circle Component Library
       </h1>
 
       <p style={{ fontSize: "16px", color: "#666", marginBottom: "48px" }}>
@@ -322,7 +322,7 @@ const meta: Meta<typeof Components> = {
     docs: {
       description: {
         component:
-          "Complete overview of all UI components in the EnkiAI design system, showcasing variants, states, and usage examples.",
+          "Complete overview of all UI components in the Circle design system, showcasing variants, states, and usage examples.",
       },
     },
   },

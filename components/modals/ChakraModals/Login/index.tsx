@@ -63,7 +63,7 @@ export const ModalLogin = () => {
               Login Required
             </AlertTitle>
             <AlertDescription maxWidth="sm" mb={4}>
-              You need to be logged in to use EnkiAI. Please click the button below to
+              You need to be logged in to use Circle. Please click the button below to
               proceed to the login page.
             </AlertDescription>
             <Button

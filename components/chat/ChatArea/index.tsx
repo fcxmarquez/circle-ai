@@ -129,7 +129,7 @@ export const ChatArea = () => {
             {messages.length === 0 ? (
               <div className="text-muted-foreground flex h-full flex-1 flex-col items-center justify-center gap-4 text-center">
                 <h3 className="text-lg font-semibold text-text-default">
-                  Welcome to EnkiAI!
+                  Welcome to Circle!
                 </h3>
                 <p style={{ color: colors.text.paragraph }} className="max-w-md">
                   Start a conversation by typing a message below. The AI supports markdown

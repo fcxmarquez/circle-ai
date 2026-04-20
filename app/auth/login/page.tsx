@@ -16,7 +16,7 @@ export default function LoginPage() {
         <VStack spacing="6" align="center">
           <VStack spacing="3" align="center">
             <Heading size="lg">Welcome back</Heading>
-            <Text color="fg.muted">Sign in to continue to EnkiAI</Text>
+            <Text color="fg.muted">Sign in to continue to Circle</Text>
           </VStack>
           <GoogleAuthButton />
         </VStack>
