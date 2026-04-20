@@ -45,6 +45,14 @@ export async function detectModelTier(): Promise<LocalModelTier> {
   const nav = navigator as NavigatorWithGPU;
   if (!nav.gpu) return "cpu";
 
+  try {
+    const gpu = nav.gpu as { requestAdapter(): Promise<unknown> };
+    const adapter = await gpu.requestAdapter();
+    if (!adapter) return "cpu";
+  } catch {
+    return "cpu";
+  }
+
   const memory = nav.deviceMemory;
   if (memory === undefined) return "local-low";
   if (memory >= 8) return "local-high";

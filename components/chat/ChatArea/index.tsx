@@ -6,9 +6,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 // import { hasActiveSession } from "@/utils/supabase/session";
 import { Thread } from "@/components/chat/Thread";
-import { InputChat } from "@/components/Inputs/InputChat";
 // TEMP: Disabled for rebuild - FCX-30
 // import { ModalLogin } from "@/components/Modals/ChakraModals/Login";
+import { InputChat } from "@/components/Inputs/InputChat";
 import { LocalModelConsentDialog } from "@/components/modals/local-model-consent";
 import { isLocalModel } from "@/constants/models";
 import { colors } from "@/constants/systemDesign/colors";
