@@ -135,7 +135,7 @@ const ColorPalette = () => {
   return (
     <div style={{ padding: "24px", fontFamily: "system-ui, sans-serif" }}>
       <h1 style={{ marginBottom: "32px", fontSize: "24px", fontWeight: "bold" }}>
-        EnkiAI Color System
+        Circle Color System
       </h1>
 
       <ColorSection title="Brand Colors" colorObj={colors.brand} prefix="brand" />
@@ -160,7 +160,7 @@ const meta: Meta<typeof ColorPalette> = {
     docs: {
       description: {
         component:
-          "The complete color palette for the EnkiAI design system, including brand colors, text colors, backgrounds, and component-specific colors.",
+          "The complete color palette for the Circle design system, including brand colors, text colors, backgrounds, and component-specific colors.",
       },
     },
   },

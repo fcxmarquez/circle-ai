@@ -17,7 +17,7 @@ export interface StreamLocalChatOptions {
 }
 
 const TRANSFORMERS_CACHE_KEY = "transformers-cache";
-export const MODEL_DOWNLOADED_KEY_PREFIX = "enki-model-downloaded-";
+export const MODEL_DOWNLOADED_KEY_PREFIX = "circle-model-downloaded-";
 
 let worker: Worker | null = null;
 let requestCounter = 0;

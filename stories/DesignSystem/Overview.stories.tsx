@@ -97,7 +97,7 @@ const Overview = () => {
             textShadow: "0 2px 4px rgba(0,0,0,0.3)",
           }}
         >
-          EnkiAI Design System
+          Circle Design System
         </h1>
         <p
           style={{
@@ -109,7 +109,7 @@ const Overview = () => {
           }}
         >
           A comprehensive design system that ensures consistency, accessibility, and
-          exceptional user experience across the EnkiAI platform.
+          exceptional user experience across the Circle platform.
         </p>
       </div>
 
@@ -307,7 +307,7 @@ const Overview = () => {
               marginBottom: "32px",
             }}
           >
-            Ready to build with the EnkiAI design system? Explore each section to
+            Ready to build with the Circle design system? Explore each section to
             understand the components, patterns, and guidelines that will help you create
             consistent and beautiful user interfaces.
           </p>
@@ -398,7 +398,7 @@ const meta: Meta<typeof Overview> = {
     docs: {
       description: {
         component:
-          "Welcome to the EnkiAI Design System - a comprehensive guide to building consistent, accessible, and beautiful user interfaces.",
+          "Welcome to the Circle Design System - a comprehensive guide to building consistent, accessible, and beautiful user interfaces.",
       },
     },
   },

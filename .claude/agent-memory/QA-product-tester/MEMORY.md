@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-- **App**: EnkiAI - AI chat application built with Next.js 15, Zustand, shadcn/ui
+- **App**: Circle - AI chat application built with Next.js 15, Zustand, shadcn/ui
 - **Local URL**: http://localhost:3000
-- **Start command**: `bun dev` from `/Volumes/sourcecode/projects/enki-ai`
+- **Start command**: `bun dev` from `/Volumes/sourcecode/projects/circle-ai`
 
 ## Testing Patterns
 

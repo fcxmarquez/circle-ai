@@ -158,7 +158,7 @@ const Breakpoints = () => {
       style={{ padding: "24px", fontFamily: "system-ui, sans-serif", maxWidth: "800px" }}
     >
       <h1 style={{ marginBottom: "32px", fontSize: "24px", fontWeight: "bold" }}>
-        EnkiAI Responsive Breakpoints
+        Circle Responsive Breakpoints
       </h1>
 
       <p style={{ fontSize: "16px", color: "#666", marginBottom: "32px" }}>
@@ -254,7 +254,7 @@ const meta: Meta<typeof Breakpoints> = {
     docs: {
       description: {
         component:
-          "Responsive breakpoint system defining how the EnkiAI interface adapts across different screen sizes and devices.",
+          "Responsive breakpoint system defining how the Circle interface adapts across different screen sizes and devices.",
       },
     },
   },

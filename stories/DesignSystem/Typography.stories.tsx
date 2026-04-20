@@ -51,7 +51,7 @@ const Typography = () => {
       style={{ padding: "24px", fontFamily: "system-ui, sans-serif", maxWidth: "800px" }}
     >
       <h1 style={{ marginBottom: "32px", fontSize: "24px", fontWeight: "bold" }}>
-        EnkiAI Typography System
+        Circle Typography System
       </h1>
 
       <section style={{ marginBottom: "48px" }}>
@@ -240,7 +240,7 @@ const meta: Meta<typeof Typography> = {
     docs: {
       description: {
         component:
-          "Typography system showcasing all text styles, sizes, weights, and colors used throughout the EnkiAI application.",
+          "Typography system showcasing all text styles, sizes, weights, and colors used throughout the Circle application.",
       },
     },
   },

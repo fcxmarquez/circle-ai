@@ -20,7 +20,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "EnkiAI",
+  title: "Circle",
   description: "AI-powered chat application",
 };
 
