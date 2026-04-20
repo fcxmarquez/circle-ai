@@ -1,6 +1,6 @@
 "use client";
 
-import { Modal, ModalOverlay } from "@chakra-ui/react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useUI, useUIActions } from "@/store";
 
 export const ModalRender = () => {
@@ -8,9 +8,15 @@ export const ModalRender = () => {
   const { modal } = useUI();
 
   return (
-    <Modal isOpen={modal.isOpen} onClose={hideModal} isCentered size="xl">
-      <ModalOverlay />
-      {modal.children}
-    </Modal>
+    <Dialog
+      open={modal.isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          hideModal();
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-xl">{modal.children}</DialogContent>
+    </Dialog>
   );
 };

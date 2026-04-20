@@ -1,5 +1,6 @@
 "use client";
 
+import type { FallbackProps } from "react-error-boundary";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -8,21 +9,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
  *
  * Renders a Shadcn dialog with the error message and a button to retry.
  */
-export function ErrorFallback({
-  error,
-  resetErrorBoundary,
-}: {
-  error: Error;
-  resetErrorBoundary: () => void;
-}) {
+export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "An unexpected error occurred.";
+
   return (
     <Dialog open>
       <DialogContent className="text-center">
         <DialogHeader>
           <DialogTitle>Something went wrong</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-destructive">{error.message}</p>
-        <Button onClick={resetErrorBoundary} className="mt-4">
+        <p className="text-sm text-destructive">{message}</p>
+        <Button onClick={() => resetErrorBoundary()} className="mt-4">
           Try again
         </Button>
       </DialogContent>

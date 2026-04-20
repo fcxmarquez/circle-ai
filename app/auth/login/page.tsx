@@ -1,26 +1,17 @@
 "use client";
 
-import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react";
 import { GoogleAuthButton } from "@/components/auth/AuthButton";
 
 export default function LoginPage() {
   return (
-    <Container maxW="lg" py={{ base: "12", md: "24" }} px={{ base: "0", sm: "8" }}>
-      <Box
-        py={{ base: "0", sm: "8" }}
-        px={{ base: "4", sm: "10" }}
-        bg={{ base: "transparent", sm: "bg.surface" }}
-        boxShadow={{ base: "none", sm: "md" }}
-        borderRadius={{ base: "none", sm: "xl" }}
-      >
-        <VStack spacing="6" align="center">
-          <VStack spacing="3" align="center">
-            <Heading size="lg">Welcome back</Heading>
-            <Text color="fg.muted">Sign in to continue to Circle</Text>
-          </VStack>
-          <GoogleAuthButton />
-        </VStack>
-      </Box>
-    </Container>
+    <div className="mx-auto w-full max-w-lg px-4 text-center sm:px-8">
+      <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-3">
+          <h1 className="font-semibold text-lg">Welcome back</h1>
+          <p className="text-muted-foreground">Sign in to continue to Circle</p>
+        </div>
+        <GoogleAuthButton />
+      </div>
+    </div>
   );
 }
