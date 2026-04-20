@@ -98,5 +98,10 @@
     "tw-animate-css": "^1.3.0",
     "vitest": "4.1.4"
   },
-  "packageManager": "bun@1.3.8"
+  "packageManager": "bun@1.3.8",
+  "overrides": {
+    "vite": "7.3.2",
+    "rollup": "4.60.2",
+    "picomatch": "4.0.4"
+  }
 }
