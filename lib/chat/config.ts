@@ -34,16 +34,21 @@ export function getRequiredApiKey(modelValue: string): ApiKeyType | null {
 }
 
 export function hasRequiredKeyForModel(modelValue: string, config: ChatApiKeys): boolean {
-  const requiredKey = getRequiredApiKey(modelValue);
-  if (!isSupportedApiKey(requiredKey)) return false;
-  return hasValue(config[requiredKey]);
+  const modelConfig = getModelConfig(modelValue);
+  if (!modelConfig) return false;
+  if (modelConfig.requiresKey === null) return true;
+  if (!isSupportedApiKey(modelConfig.requiresKey)) return false;
+  return hasValue(config[modelConfig.requiresKey]);
 }
 
 export function getAvailableModels(config: ChatSelectionConfig): ModelValue[] {
-  return (config.enabledModels ?? []).filter(
-    (model): model is ModelValue =>
-      Boolean(getModelConfig(model)) && hasRequiredKeyForModel(model, config)
-  );
+  const suppressLocal = hasAnyApiKey(config);
+  return (config.enabledModels ?? []).filter((model): model is ModelValue => {
+    const modelConfig = getModelConfig(model);
+    if (!modelConfig) return false;
+    if (suppressLocal && modelConfig.provider === "Local") return false;
+    return hasRequiredKeyForModel(model, config);
+  });
 }
 
 export function getResolvedSelectedModel(config: ChatSelectionConfig): ModelValue | null {

@@ -56,4 +56,17 @@ describe("chat config helpers", () => {
       })
     ).toBe(false);
   });
+
+  it("hides local models once any API key is present", () => {
+    const guest = {
+      openAIKey: "",
+      anthropicKey: "",
+      googleKey: "",
+      enabledModels: ["local-auto", "claude-sonnet-4-6"] as const,
+    };
+    expect(getAvailableModels(guest)).toEqual(["local-auto"]);
+
+    const withKey = { ...guest, anthropicKey: "sk-ant" };
+    expect(getAvailableModels(withKey)).toEqual(["claude-sonnet-4-6"]);
+  });
 });

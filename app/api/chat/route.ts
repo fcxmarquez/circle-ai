@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { isLocalModel } from "@/constants/models";
 import { getSelectedModelError } from "@/lib/chat/config";
 import { ChatStreamRequestSchema } from "@/lib/chat/contracts";
 import { streamChatResponse } from "@/lib/langchain/chatService";
@@ -21,6 +22,12 @@ export async function POST(req: NextRequest) {
   }
 
   const request = parsedBody.data;
+  if (isLocalModel(request.config.selectedModel)) {
+    return jsonError(
+      "Local models run in the browser and cannot be called through this endpoint.",
+      400
+    );
+  }
   const selectedModelError = getSelectedModelError(request.config);
   if (selectedModelError) {
     return jsonError(selectedModelError, 400);

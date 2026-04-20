@@ -6,12 +6,15 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 // import { hasActiveSession } from "@/utils/supabase/session";
 import { Thread } from "@/components/chat/Thread";
-import { InputChat } from "@/components/Inputs/InputChat";
 // TEMP: Disabled for rebuild - FCX-30
 // import { ModalLogin } from "@/components/Modals/ChakraModals/Login";
+import { InputChat } from "@/components/Inputs/InputChat";
+import { LocalModelConsentDialog } from "@/components/modals/local-model-consent";
+import { isLocalModel } from "@/constants/models";
 import { colors } from "@/constants/systemDesign/colors";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { useCircleChat } from "@/hooks/useCircleChat";
+import { useLocalModelConsent } from "@/hooks/useLocalModelConsent";
 import { canSendSelectedModel, getSelectedModelError } from "@/lib/chat/config";
 import { useConfig, useUIActions } from "@/store";
 
@@ -21,8 +24,17 @@ export const ChatArea = () => {
   const { setSettingsModalOpen } = useUIActions();
   const { config } = useConfig();
   const canSend = canSendSelectedModel(config);
-  const { sendMessage, stopGeneration, isLoading, messages, isError, error } =
-    useCircleChat();
+  const {
+    sendMessage,
+    stopGeneration,
+    isLoading,
+    messages,
+    isError,
+    error,
+    localModelStatus,
+    localModelSpec,
+  } = useCircleChat();
+  const consent = useLocalModelConsent();
   // TEMP: Disabled for rebuild - FCX-30
   // const [hasSession, setHasSession] = useState<boolean | null>(null);
 
@@ -40,6 +52,30 @@ export const ChatArea = () => {
     followKey,
     isLoading,
   });
+
+  useEffect(() => {
+    if (!localModelSpec) return;
+
+    const LOCAL_DOWNLOAD_TOAST_ID = "local-model-download";
+    const sizeLabel =
+      localModelSpec.approximateSizeMB >= 1000
+        ? `~${(localModelSpec.approximateSizeMB / 1000).toFixed(1)} GB`
+        : `~${localModelSpec.approximateSizeMB} MB`;
+
+    if (localModelStatus === "downloading") {
+      toast.loading(`Downloading ${localModelSpec.label} (${sizeLabel})…`, {
+        id: LOCAL_DOWNLOAD_TOAST_ID,
+        description: "First-run only. The model is cached for future messages.",
+      });
+    } else if (localModelStatus === "loading-cache") {
+      toast.loading(`Loading ${localModelSpec.label} from cache…`, {
+        id: LOCAL_DOWNLOAD_TOAST_ID,
+        description: "Warming up the local model.",
+      });
+    } else if (localModelStatus === "ready" || localModelStatus === "idle") {
+      toast.dismiss(LOCAL_DOWNLOAD_TOAST_ID);
+    }
+  }, [localModelStatus, localModelSpec]);
 
   useEffect(() => {
     if (isError && error?.message?.includes("API key")) {
@@ -66,6 +102,14 @@ export const ChatArea = () => {
           "Please configure your chat settings to continue."
       );
       setSettingsModalOpen(true);
+      return;
+    }
+
+    if (isLocalModel(config.selectedModel)) {
+      const spec = await consent.requestConsent();
+      if (!spec) return;
+      sendMessage(message, spec);
+      scheduleScrollToBottom("smooth");
       return;
     }
 
@@ -125,6 +169,17 @@ export const ChatArea = () => {
           onStop={stopGeneration}
         />
       </div>
+
+      <LocalModelConsentDialog
+        open={consent.open}
+        spec={consent.spec}
+        onConfirm={consent.confirm}
+        onCancel={consent.cancel}
+        onAddApiKey={() => {
+          consent.cancel();
+          setSettingsModalOpen(true);
+        }}
+      />
     </div>
   );
 };

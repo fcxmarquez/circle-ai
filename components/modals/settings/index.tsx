@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Cpu, Eye, EyeOff, KeyRound, LogOut, Settings2, SunMoon } from "lucide-react";
+import { Cpu, Eye, EyeOff, KeyRound, LogOut, Settings2, SunMoon, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";
 import { useState } from "react";
@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import type { ModelValue } from "@/constants/models";
 import {
   DEFAULT_ENABLED_MODELS,
   DEFAULT_MODEL,
@@ -49,8 +50,6 @@ import {
 import {
   getAvailableModels,
   getConfigIssues,
-  getSelectedModelError,
-  hasAnyApiKey,
   hasRequiredKeyForModel,
 } from "@/lib/chat/config";
 import { useConfig, useUserActions } from "@/store";
@@ -92,19 +91,33 @@ function ApiKeyField({
                 {...field}
                 type={show ? "text" : "password"}
                 placeholder={placeholder}
-                className="pr-10"
+                className={field.value ? "pr-20" : "pr-10"}
                 autoComplete="off"
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                aria-label={show ? `Hide ${label}` : `Show ${label}`}
-                onClick={() => setShow((s) => !s)}
-              >
-                {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
+              <div className="absolute right-0 top-0 h-full flex items-center">
+                {field.value && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-full px-2 hover:bg-transparent"
+                    aria-label={`Clear ${label}`}
+                    onClick={() => field.onChange("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-full px-3 hover:bg-transparent"
+                  aria-label={show ? `Hide ${label}` : `Show ${label}`}
+                  onClick={() => setShow((s) => !s)}
+                >
+                  {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </FormControl>
           <FormMessage />
@@ -159,7 +172,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   // eslint-disable-next-line react-hooks/incompatible-library
   const watchedValues = form.watch();
 
-  const hasConfiguredApiKey = hasAnyApiKey(watchedValues);
   const availableEnabledModels = getAvailableModels({
     enabledModels: watchedValues.enabledModels,
     openAIKey: watchedValues.openAIKey,
@@ -168,17 +180,13 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   });
 
   React.useEffect(() => {
-    if (!hasConfiguredApiKey) {
-      return;
-    }
-
     if (
       availableEnabledModels.length > 0 &&
       !availableEnabledModels.includes(watchedValues.selectedModel)
     ) {
       form.setValue("selectedModel", availableEnabledModels[0], { shouldValidate: true });
     }
-  }, [availableEnabledModels, form, hasConfiguredApiKey, watchedValues.selectedModel]);
+  }, [availableEnabledModels, form, watchedValues.selectedModel]);
 
   const handleClose = (next: boolean) => {
     onOpenChange(next);
@@ -198,39 +206,30 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   };
 
   const onSubmit = (data: z.infer<typeof settingsFormSchema>) => {
-    if (!hasAnyApiKey(data)) {
-      toast.error("Please provide at least one API key.");
-      return;
-    }
-
     const issues = getConfigIssues(data);
 
-    if (issues.noEnabledModels) {
+    const enabledModels =
+      issues.enabledModelsMissingKeys.length > 0
+        ? data.enabledModels.filter(
+            (m) => !issues.enabledModelsMissingKeys.includes(m as ModelValue)
+          )
+        : data.enabledModels;
+
+    if (enabledModels.length === 0) {
       toast.error("Please enable at least one model.");
       return;
     }
 
-    if (issues.selectedModelNotEnabled) {
-      return toast.error("Default model must be one of the enabled models.");
-    }
-
-    if (issues.enabledModelsMissingKeys.length > 0) {
-      toast.error("Each enabled model needs a matching provider API key.");
-      return;
-    }
-
-    const selectedModelError = getSelectedModelError(data);
-    if (selectedModelError) {
-      toast.error(selectedModelError);
-      return;
-    }
+    const selectedModel = enabledModels.includes(data.selectedModel)
+      ? data.selectedModel
+      : enabledModels[0];
 
     setConfig({
       openAIKey: data.openAIKey || "",
       anthropicKey: data.anthropicKey || "",
       googleKey: data.googleKey || "",
-      selectedModel: data.selectedModel as ModelType,
-      enabledModels: data.enabledModels as ModelType[],
+      selectedModel: selectedModel as ModelType,
+      enabledModels: enabledModels as ModelType[],
     });
     handleClose(false);
     toast.success("Settings saved successfully");
@@ -289,23 +288,15 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             </div>
             <Separator />
             {/* Model Selection Section */}
-            <div
-              className={`space-y-4 ${!hasConfiguredApiKey ? "opacity-50 pointer-events-none" : ""}`}
-            >
+            <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Cpu className="h-4 w-4" />
                 <h3 className="text-md font-medium">AI Models</h3>
-                {!hasConfiguredApiKey && (
-                  <Badge variant="secondary" className="text-xs">
-                    Requires API Key
-                  </Badge>
-                )}
               </div>
-              {!hasConfiguredApiKey && (
-                <p className="text-sm text-muted-foreground">
-                  Please provide at least one API key below to enable model selection.
-                </p>
-              )}
+              <p className="text-sm text-muted-foreground">
+                Local models run in your browser with no API key required. Provide API
+                keys below to unlock cloud models.
+              </p>
               {/* Available Models with Checkboxes */}
               <FormField
                 control={form.control}
@@ -314,16 +305,14 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   <FormItem>
                     <FormLabel>Available Models</FormLabel>
                     <FormDescription>
-                      Select which models appear in your model selector. You need valid
-                      API keys for each enabled model.
+                      Select which models appear in your model selector. Cloud models
+                      require a matching provider API key.
                     </FormDescription>
                     <FormControl>
                       <MultipleCombobox
                         options={modelOptions}
-                        value={hasConfiguredApiKey ? field.value : []}
+                        value={field.value}
                         onValueChange={(newValue) => {
-                          if (!hasConfiguredApiKey) return;
-
                           if (newValue.length > 10) {
                             toast.error("You can select a maximum of 10 models");
                             return;
@@ -331,7 +320,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
                           field.onChange(newValue);
 
-                          // Auto-select first model if enabling and none selected
                           if (
                             newValue.length > 0 &&
                             !newValue.includes(watchedValues.selectedModel)
@@ -339,14 +327,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                             form.setValue("selectedModel", newValue[0] as ModelType);
                           }
                         }}
-                        placeholder={
-                          hasConfiguredApiKey
-                            ? "Select AI models..."
-                            : "Provide API keys first"
-                        }
+                        placeholder="Select AI models..."
                         searchPlaceholder="Search models..."
                         emptyText="No models found."
-                        disabled={!hasConfiguredApiKey}
                       />
                     </FormControl>
 
@@ -356,7 +339,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               />
 
               {/* Default Model Selection */}
-              {hasConfiguredApiKey && watchedValues.enabledModels.length > 0 && (
+              {watchedValues.enabledModels.length > 0 && (
                 <FormField
                   control={form.control}
                   name="selectedModel"

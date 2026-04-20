@@ -1,14 +1,63 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { isLocalModel } from "@/constants/models";
 import { streamChatRequest } from "@/lib/chat/client";
 import type { ChatMessage, ChatStreamRequest } from "@/lib/chat/contracts";
+import { DEFAULT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
+import type { LocalModelSpec } from "@/lib/local/capabilities";
+import {
+  MODEL_DOWNLOADED_KEY_PREFIX,
+  streamLocalChatRequest,
+} from "@/lib/local/localTransport";
 import { useChat, useChatActions, useConfig } from "@/store";
 import { useManageChunks } from "./useManageChunks";
+
+export type LocalModelStatus = "idle" | "downloading" | "loading-cache" | "ready";
+
+async function runLocalStream(options: {
+  spec: LocalModelSpec;
+  message: string;
+  history: ChatMessage[];
+  signal: AbortSignal;
+  onChunk: (chunk: string) => void;
+  onModelStatus: (status: LocalModelStatus, spec: LocalModelSpec) => void;
+}): Promise<string> {
+  const { spec } = options;
+
+  const payload = [
+    { role: "system", content: DEFAULT_SYSTEM_PROMPT },
+    ...options.history.map((msg) => ({ role: msg.role, content: msg.content })),
+    { role: "user", content: options.message },
+  ];
+
+  return await streamLocalChatRequest({
+    spec,
+    messages: payload,
+    signal: options.signal,
+    onChunk: options.onChunk,
+
+    onProgress: (progress) => {
+      const cacheKey = `${MODEL_DOWNLOADED_KEY_PREFIX}${spec.modelId}`;
+
+      if (progress.status === "ready") {
+        localStorage.setItem(cacheKey, "true");
+        options.onModelStatus("ready", spec);
+      }
+
+      if (progress.status === "download") {
+        const isCached = !!localStorage.getItem(cacheKey);
+        options.onModelStatus(isCached ? "loading-cache" : "downloading", spec);
+      }
+    },
+  });
+}
 
 export const useCircleChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [localModelStatus, setLocalModelStatus] = useState<LocalModelStatus>("idle");
+  const [localModelSpec, setLocalModelSpec] = useState<LocalModelSpec | null>(null);
   const isSendingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
@@ -35,9 +84,10 @@ export const useCircleChat = () => {
     flushChunks();
     isSendingRef.current = false;
     setIsLoading(false);
+    setLocalModelStatus("idle");
   };
 
-  const sendMessage = (message: string) => {
+  const sendMessage = (message: string, localSpec?: LocalModelSpec) => {
     if (isSendingRef.current || isLoading) {
       return;
     }
@@ -72,25 +122,53 @@ export const useCircleChat = () => {
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     let hasResponse = false;
-    const request = {
-      message: trimmedMessage,
-      history,
-      config: {
-        openAIKey: config.openAIKey,
-        anthropicKey: config.anthropicKey,
-        googleKey: config.googleKey,
-        selectedModel: config.selectedModel,
-        reasoningLevel: config.reasoningLevel,
-      },
-    } satisfies ChatStreamRequest;
 
-    void streamChatRequest(request, {
-      signal: abortController.signal,
-      onChunk: (chunk) => {
-        hasResponse = true;
-        accumulateChunk(assistantMessage.id, chunk);
-      },
-    })
+    const useLocal = isLocalModel(config.selectedModel);
+
+    if (useLocal && !localSpec) {
+      finishStreaming();
+      deleteMessage(assistantMessage.id);
+      toast.error("Local model requires consent before sending.");
+      return;
+    }
+
+    const streamPromise = useLocal
+      ? runLocalStream({
+          spec: localSpec as LocalModelSpec,
+          message: trimmedMessage,
+          history,
+          signal: abortController.signal,
+          onChunk: (chunk: string) => {
+            hasResponse = true;
+            accumulateChunk(assistantMessage.id, chunk);
+          },
+          onModelStatus: (status, spec) => {
+            setLocalModelStatus(status);
+            setLocalModelSpec(spec);
+          },
+        })
+      : streamChatRequest(
+          {
+            message: trimmedMessage,
+            history,
+            config: {
+              openAIKey: config.openAIKey,
+              anthropicKey: config.anthropicKey,
+              googleKey: config.googleKey,
+              selectedModel: config.selectedModel,
+              reasoningLevel: config.reasoningLevel,
+            },
+          } satisfies ChatStreamRequest,
+          {
+            signal: abortController.signal,
+            onChunk: (chunk) => {
+              hasResponse = true;
+              accumulateChunk(assistantMessage.id, chunk);
+            },
+          }
+        );
+
+    void streamPromise
       .then(() => {
         finishStreaming();
         setError(null);
@@ -153,5 +231,7 @@ export const useCircleChat = () => {
     sendMessage,
     stopGeneration,
     isLoading,
+    localModelStatus,
+    localModelSpec,
   };
 };

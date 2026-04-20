@@ -1,6 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["langchain", "@langchain/openai", "@langchain/anthropic"],
+  serverExternalPackages: [
+    "langchain",
+    "@langchain/openai",
+    "@langchain/anthropic",
+    "@huggingface/transformers",
+    "onnxruntime-node",
+    "sharp",
+  ],
+  turbopack: {},
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      sharp$: false,
+      "onnxruntime-node$": false,
+    };
+    return config;
+  },
   images: {
     remotePatterns: [
       {
