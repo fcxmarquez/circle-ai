@@ -48,16 +48,19 @@ function isIOS(): boolean {
   );
 }
 
+function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/.test(navigator.userAgent);
+}
+
 export async function detectModelTier(): Promise<LocalModelTier> {
   if (typeof navigator === "undefined") return "cpu";
 
-  // WebGPU ONNX models are unreliable on iOS Safari/WebKit — always use WASM
   if (isIOS()) return "cpu";
 
   const nav = navigator as NavigatorWithGPU;
   if (!nav.gpu) return "cpu";
 
-  // Verify a real GPU adapter is available (e.g. fails in iOS simulator)
   try {
     const gpu = nav.gpu as { requestAdapter(): Promise<unknown> };
     const adapter = await gpu.requestAdapter();
@@ -65,6 +68,8 @@ export async function detectModelTier(): Promise<LocalModelTier> {
   } catch {
     return "cpu";
   }
+
+  if (isAndroid()) return "local-low";
 
   const memory = nav.deviceMemory;
   if (memory === undefined) return "local-low";
