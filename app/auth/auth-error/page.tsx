@@ -51,7 +51,7 @@ export default function AuthErrorPage() {
         >
           <p className="font-semibold">Error: {errorDetails.error}</p>
           {errorDetails.errorCode && <p>Code: {errorDetails.errorCode}</p>}
-          <p className="mt-2">{decodeURIComponent(errorDetails.errorDescription)}</p>
+          <p className="mt-2">{errorDetails.errorDescription}</p>
         </div>
 
         <div className="flex w-full flex-col items-center gap-3">

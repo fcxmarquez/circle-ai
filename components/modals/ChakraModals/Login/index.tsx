@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { FiLogIn } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,18 +17,6 @@ export const ModalLogin = () => {
   const handleLogin = () => {
     router.push("/auth/login");
   };
-
-  // Prevent closing the modal by clicking outside
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   return (
     <Dialog open>
@@ -54,7 +41,7 @@ export const ModalLogin = () => {
             </p>
           </div>
           <Button onClick={handleLogin}>
-            <FiLogIn />
+            <FiLogIn aria-hidden="true" />
             Go to Login
           </Button>
         </div>
