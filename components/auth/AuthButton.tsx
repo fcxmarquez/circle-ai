@@ -1,4 +1,3 @@
-import { Button } from "@chakra-ui/react";
 import { usePathname } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
 import { createClient } from "@/utils/supabase/client";
@@ -19,14 +18,13 @@ export function GoogleAuthButton() {
   };
 
   return (
-    <Button
-      w="full"
-      maxW="md"
-      variant="outline"
-      leftIcon={<FcGoogle />}
+    <button
+      type="button"
+      className="inline-flex h-6 items-center justify-center gap-2 bg-transparent p-0 font-medium text-base"
       onClick={handleGoogleSignIn}
     >
+      <FcGoogle />
       Continue with Google
-    </Button>
+    </button>
   );
 }

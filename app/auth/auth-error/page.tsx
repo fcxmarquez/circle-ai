@@ -1,17 +1,8 @@
 "use client";
 
-import {
-  Alert,
-  AlertIcon,
-  Box,
-  Button,
-  Container,
-  Heading,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function AuthErrorPage() {
   const router = useRouter();
@@ -45,47 +36,33 @@ export default function AuthErrorPage() {
   };
 
   return (
-    <Container maxW="lg" py={{ base: "12", md: "24" }} px={{ base: "0", sm: "8" }}>
-      <Box
-        py={{ base: "0", sm: "8" }}
-        px={{ base: "4", sm: "10" }}
-        bg={{ base: "transparent", sm: "bg.surface" }}
-        boxShadow={{ base: "none", sm: "md" }}
-        borderRadius={{ base: "none", sm: "xl" }}
-      >
-        <VStack spacing="6" align="center">
-          <VStack spacing="3" align="center">
-            <Heading size="lg" color="red.500">
-              Authentication Error
-            </Heading>
-            <Text color="fg.muted" textAlign="center">
-              We encountered an issue while trying to sign you in.
-            </Text>
-          </VStack>
+    <div className="mx-auto w-full max-w-lg px-4 text-center sm:px-8">
+      <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-3">
+          <h1 className="font-semibold text-lg text-red-500">Authentication Error</h1>
+          <p className="text-muted-foreground">
+            We encountered an issue while trying to sign you in.
+          </p>
+        </div>
 
-          <Alert status="error" borderRadius="md">
-            <AlertIcon />
-            <Box>
-              <Text fontWeight="bold">Error: {errorDetails.error}</Text>
-              {errorDetails.errorCode && (
-                <Text fontSize="sm">Code: {errorDetails.errorCode}</Text>
-              )}
-              <Text fontSize="sm" mt={2}>
-                {decodeURIComponent(errorDetails.errorDescription)}
-              </Text>
-            </Box>
-          </Alert>
+        <div
+          role="alert"
+          className="w-full rounded-md border border-destructive/30 bg-destructive/5 p-4 text-left text-sm"
+        >
+          <p className="font-semibold">Error: {errorDetails.error}</p>
+          {errorDetails.errorCode && <p>Code: {errorDetails.errorCode}</p>}
+          <p className="mt-2">{errorDetails.errorDescription}</p>
+        </div>
 
-          <VStack spacing="3" w="full">
-            <Button w="full" maxW="md" colorScheme="blue" onClick={handleRetry}>
-              Try Again
-            </Button>
-            <Button w="full" maxW="md" variant="outline" onClick={handleGoHome}>
-              Go to Home
-            </Button>
-          </VStack>
-        </VStack>
-      </Box>
-    </Container>
+        <div className="flex w-full flex-col items-center gap-3">
+          <Button className="w-full max-w-md" onClick={handleRetry}>
+            Try Again
+          </Button>
+          <Button className="w-full max-w-md" variant="outline" onClick={handleGoHome}>
+            Go to Home
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

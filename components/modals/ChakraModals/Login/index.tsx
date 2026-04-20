@@ -1,82 +1,51 @@
-import {
-  Alert,
-  AlertDescription,
-  AlertIcon,
-  AlertTitle,
-  Button,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
-  useDisclosure,
-} from "@chakra-ui/react";
+"use client";
+
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { FiLogIn } from "react-icons/fi";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const ModalLogin = () => {
-  const { isOpen, onClose } = useDisclosure({ defaultIsOpen: true });
   const router = useRouter();
 
   const handleLogin = () => {
     router.push("/auth/login");
   };
 
-  // Prevent closing the modal by clicking outside
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      closeOnOverlayClick={false}
-      closeOnEsc={false}
-    >
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Authentication Required</ModalHeader>
-        <ModalCloseButton disabled />
-        <ModalBody pb={6}>
-          <Alert
-            status="info"
-            variant="subtle"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            textAlign="center"
-            height="auto"
-            className="rounded-lg"
-          >
-            <AlertIcon boxSize="40px" mr={0} />
-            <AlertTitle mt={4} mb={1} fontSize="lg">
-              Login Required
-            </AlertTitle>
-            <AlertDescription maxWidth="sm" mb={4}>
+    <Dialog open>
+      <DialogContent
+        onEscapeKeyDown={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle>Authentication Required</DialogTitle>
+          <DialogDescription>
+            You need to be logged in to use Circle. Please click the button below to
+            proceed to the login page.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 rounded-lg bg-muted p-6 text-center">
+          <FiLogIn className="size-10" aria-hidden="true" />
+          <div>
+            <h2 className="font-semibold text-lg">Login Required</h2>
+            <p className="max-w-sm text-muted-foreground text-sm">
               You need to be logged in to use Circle. Please click the button below to
               proceed to the login page.
-            </AlertDescription>
-            <Button
-              leftIcon={<FiLogIn />}
-              colorScheme="purple"
-              onClick={handleLogin}
-              mb={4}
-            >
-              Go to Login
-            </Button>
-          </Alert>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+            </p>
+          </div>
+          <Button onClick={handleLogin}>
+            <FiLogIn aria-hidden="true" />
+            Go to Login
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };

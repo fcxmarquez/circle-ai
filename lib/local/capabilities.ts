@@ -35,7 +35,6 @@ export const LOCAL_MODEL_SPECS: Record<LocalModelTier, LocalModelSpec> = {
 };
 
 interface NavigatorWithGPU extends Navigator {
-  gpu?: unknown;
   deviceMemory?: number;
 }
 

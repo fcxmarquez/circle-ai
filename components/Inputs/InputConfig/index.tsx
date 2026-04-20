@@ -1,6 +1,7 @@
-import { IconButton, Input, InputGroup, InputRightElement } from "@chakra-ui/react";
 import { Eye, EyeOff } from "lucide-react";
 import { type FC, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type InputConfigProps = {
   label: string;
@@ -26,29 +27,34 @@ export const InputConfig: FC<InputConfigProps> = ({
       <label htmlFor={id} className="w-24 whitespace-nowrap">
         {label}
       </label>
-      <InputGroup size="sm" maxWidth="24rem">
+      <div className="relative max-w-96">
         <Input
           id={id}
           type={type === "password" && !showPassword ? "password" : "text"}
           placeholder={placeholder}
-          className="flex-1"
-          variant="flushed"
+          className="flex-1 pr-10"
           value={value}
           onChange={onChange}
         />
         {type === "password" && (
-          <InputRightElement>
-            <IconButton
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              h="1.5rem"
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowPassword(!showPassword)}
-              icon={showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            />
-          </InputRightElement>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? (
+              <EyeOff size={16} aria-hidden="true" />
+            ) : (
+              <Eye size={16} aria-hidden="true" />
+            )}
+            <span className="sr-only">
+              {showPassword ? "Hide password" : "Show password"}
+            </span>
+          </Button>
         )}
-      </InputGroup>
+      </div>
     </div>
   );
 };
