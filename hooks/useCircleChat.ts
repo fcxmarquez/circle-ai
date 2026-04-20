@@ -61,13 +61,8 @@ export const useCircleChat = () => {
   const router = useRouter();
   const { currentConversationId, messages } = useChat();
   const { config } = useConfig();
-  const {
-    createNewConversation,
-    addMessage,
-    setMessageStatus,
-    deleteMessage,
-    deleteConversation,
-  } = useChatActions();
+  const { createNewConversation, addMessage, setMessageStatus, deleteMessage } =
+    useChatActions();
   const { accumulateChunk, flushChunks, flushIntervalRef } = useManageChunks();
 
   useEffect(() => {
@@ -197,16 +192,9 @@ export const useCircleChat = () => {
         setError(streamError);
 
         if (!hasResponse) {
-          if (newConversationId) {
-            deleteConversation(newConversationId);
-          } else {
-            deleteMessage(assistantMessage.id);
-          }
+          deleteMessage(assistantMessage.id);
         } else {
           setMessageStatus(assistantMessage.id, "error");
-          if (newConversationId) {
-            router.replace(`/c/${newConversationId}`);
-          }
         }
 
         const errorMessage = streamError.message.includes("API key")
@@ -214,6 +202,10 @@ export const useCircleChat = () => {
           : "Failed to send message. Please try again.";
 
         toast.error(errorMessage);
+
+        if (newConversationId) {
+          router.replace(`/c/${newConversationId}`);
+        }
       });
   };
 
