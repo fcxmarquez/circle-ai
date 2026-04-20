@@ -39,12 +39,25 @@ interface NavigatorWithGPU extends Navigator {
   deviceMemory?: number;
 }
 
+function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  // iPadOS 13+ reports as MacIntel with touch support
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 export async function detectModelTier(): Promise<LocalModelTier> {
   if (typeof navigator === "undefined") return "cpu";
+
+  // WebGPU ONNX models are unreliable on iOS Safari/WebKit — always use WASM
+  if (isIOS()) return "cpu";
 
   const nav = navigator as NavigatorWithGPU;
   if (!nav.gpu) return "cpu";
 
+  // Verify a real GPU adapter is available (e.g. fails in iOS simulator)
   try {
     const gpu = nav.gpu as { requestAdapter(): Promise<unknown> };
     const adapter = await gpu.requestAdapter();
