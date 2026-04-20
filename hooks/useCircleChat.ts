@@ -6,22 +6,24 @@ import { streamChatRequest } from "@/lib/chat/client";
 import type { ChatMessage, ChatStreamRequest } from "@/lib/chat/contracts";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
 import type { LocalModelSpec } from "@/lib/local/capabilities";
-import { resolveLocalModelSpec } from "@/lib/local/capabilities";
-import { streamLocalChatRequest } from "@/lib/local/localTransport";
+import {
+  MODEL_DOWNLOADED_KEY_PREFIX,
+  streamLocalChatRequest,
+} from "@/lib/local/localTransport";
 import { useChat, useChatActions, useConfig } from "@/store";
 import { useManageChunks } from "./useManageChunks";
 
 export type LocalModelStatus = "idle" | "downloading" | "loading-cache" | "ready";
 
 async function runLocalStream(options: {
-  spec?: LocalModelSpec;
+  spec: LocalModelSpec;
   message: string;
   history: ChatMessage[];
   signal: AbortSignal;
   onChunk: (chunk: string) => void;
   onModelStatus: (status: LocalModelStatus, spec: LocalModelSpec) => void;
 }): Promise<string> {
-  const spec = options.spec ?? (await resolveLocalModelSpec());
+  const { spec } = options;
 
   const payload = [
     { role: "system", content: DEFAULT_SYSTEM_PROMPT },
@@ -36,7 +38,7 @@ async function runLocalStream(options: {
     onChunk: options.onChunk,
 
     onProgress: (progress) => {
-      const cacheKey = `enki-model-downloaded-${spec.modelId}`;
+      const cacheKey = `${MODEL_DOWNLOADED_KEY_PREFIX}${spec.modelId}`;
 
       if (progress.status === "ready") {
         localStorage.setItem(cacheKey, "true");
@@ -123,9 +125,16 @@ export const useCircleChat = () => {
 
     const useLocal = isLocalModel(config.selectedModel);
 
+    if (useLocal && !localSpec) {
+      finishStreaming();
+      deleteMessage(assistantMessage.id);
+      toast.error("Local model requires consent before sending.");
+      return;
+    }
+
     const streamPromise = useLocal
       ? runLocalStream({
-          spec: localSpec,
+          spec: localSpec as LocalModelSpec,
           message: trimmedMessage,
           history,
           signal: abortController.signal,

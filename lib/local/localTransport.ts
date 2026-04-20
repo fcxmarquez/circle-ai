@@ -17,6 +17,7 @@ export interface StreamLocalChatOptions {
 }
 
 const TRANSFORMERS_CACHE_KEY = "transformers-cache";
+export const MODEL_DOWNLOADED_KEY_PREFIX = "enki-model-downloaded-";
 
 let worker: Worker | null = null;
 let requestCounter = 0;
@@ -50,6 +51,13 @@ export async function clearLocalModelCache(): Promise<void> {
     worker.terminate();
     worker = null;
   }
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith(MODEL_DOWNLOADED_KEY_PREFIX)) localStorage.removeItem(key);
+    }
+  } catch {
+    // ignore blocked storage
+  }
   if (typeof caches === "undefined") return;
   try {
     await caches.delete(TRANSFORMERS_CACHE_KEY);
@@ -81,9 +89,19 @@ export async function streamLocalChatRequest(
       rejectFromOutside(error);
     };
 
+    const handleWorkerError = (event: ErrorEvent) => {
+      rejectFromOutside(new Error(event.message ?? "Worker crashed"));
+    };
+
+    const handleWorkerMessageError = () => {
+      rejectFromOutside(new Error("Worker message deserialization failed"));
+    };
+
     const cleanup = () => {
       pendingRejecters.delete(rejectFromOutside);
       w.removeEventListener("message", handleMessage);
+      w.removeEventListener("error", handleWorkerError);
+      w.removeEventListener("messageerror", handleWorkerMessageError);
       signal?.removeEventListener("abort", handleAbort);
     };
 
@@ -124,6 +142,8 @@ export async function streamLocalChatRequest(
     }
 
     w.addEventListener("message", handleMessage);
+    w.addEventListener("error", handleWorkerError, { once: true });
+    w.addEventListener("messageerror", handleWorkerMessageError, { once: true });
     signal?.addEventListener("abort", handleAbort, { once: true });
 
     w.postMessage({
