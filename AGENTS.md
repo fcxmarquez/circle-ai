@@ -142,6 +142,10 @@ Required environment variables:
 - Use conventional commit messages
 - Follow existing component patterns and naming conventions
 
+### React / JSX Conventions
+
+- Use ternary (`cond ? <JSX /> : null`) instead of `&&` for conditional rendering inside JSX. Prevents accidentally rendering `0`, `NaN`, or `""` when the left operand is not a boolean. Applies only to JSX render positions (`{cond && <JSX>}`) — keep `&&` in `if`-conditions, return expressions, `cn()` arguments, ternary conditions, and other JS logical expressions.
+
 ### Linear Task Management
 
 - When working with Linear MCP or Linear Tasks, never move tasks to completed status

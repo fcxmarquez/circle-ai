@@ -50,7 +50,7 @@ export default function AuthErrorPage() {
           className="w-full rounded-md border border-destructive/30 bg-destructive/5 p-4 text-left text-sm"
         >
           <p className="font-semibold">Error: {errorDetails.error}</p>
-          {errorDetails.errorCode && <p>Code: {errorDetails.errorCode}</p>}
+          {errorDetails.errorCode ? <p>Code: {errorDetails.errorCode}</p> : null}
           <p className="mt-2">{errorDetails.errorDescription}</p>
         </div>
 

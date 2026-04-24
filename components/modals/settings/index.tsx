@@ -95,7 +95,7 @@ function ApiKeyField({
                 autoComplete="off"
               />
               <div className="absolute right-0 top-0 h-full flex items-center">
-                {field.value && (
+                {field.value ? (
                   <Button
                     type="button"
                     variant="ghost"
@@ -106,7 +106,7 @@ function ApiKeyField({
                   >
                     <X className="h-4 w-4" />
                   </Button>
-                )}
+                ) : null}
                 <Button
                   type="button"
                   variant="ghost"
@@ -339,7 +339,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               />
 
               {/* Default Model Selection */}
-              {watchedValues.enabledModels.length > 0 && (
+              {watchedValues.enabledModels.length > 0 ? (
                 <FormField
                   control={form.control}
                   name="selectedModel"
@@ -372,7 +372,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                     </FormItem>
                   )}
                 />
-              )}
+              ) : null}
             </div>
             <Separator />
             {/* API Keys Section */}

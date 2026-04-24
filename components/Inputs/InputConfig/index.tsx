@@ -36,7 +36,7 @@ export const InputConfig: FC<InputConfigProps> = ({
           value={value}
           onChange={onChange}
         />
-        {type === "password" && (
+        {type === "password" ? (
           <Button
             type="button"
             variant="ghost"
@@ -53,7 +53,7 @@ export const InputConfig: FC<InputConfigProps> = ({
               {showPassword ? "Hide password" : "Show password"}
             </span>
           </Button>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -81,7 +81,7 @@ export const BubbleChat = ({
               isLastMessage && "min-h-[calc(100dvh-350px)]"
             )}
           >
-            {showThinking && <ThinkingBlock thinking={thinking} status={status} />}
+            {showThinking ? <ThinkingBlock thinking={thinking} status={status} /> : null}
             {showPendingPlaceholder ? (
               <div className="flex gap-1">
                 <span className="animate-bounce">.</span>
