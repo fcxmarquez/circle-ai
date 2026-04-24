@@ -37,6 +37,7 @@ next-env.d.ts
 # personal
 mynotes.md
 ai/
+.codex/
 
 # environment
 .env
