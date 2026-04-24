@@ -10,12 +10,12 @@ import { Thread } from "@/components/chat/Thread";
 // import { ModalLogin } from "@/components/Modals/ChakraModals/Login";
 import { InputChat } from "@/components/Inputs/InputChat";
 import { LocalModelConsentDialog } from "@/components/modals/local-model-consent";
-import { isLocalModel } from "@/constants/models";
 import { colors } from "@/constants/systemDesign/colors";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { useCircleChat } from "@/hooks/useCircleChat";
 import { useLocalModelConsent } from "@/hooks/useLocalModelConsent";
 import { canSendSelectedModel, getSelectedModelError } from "@/lib/chat/config";
+import { isLocalModel } from "@/lib/models";
 import { useConfig, useUIActions } from "@/store";
 
 export const ChatArea = () => {

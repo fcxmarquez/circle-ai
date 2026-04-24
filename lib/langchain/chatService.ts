@@ -1,11 +1,6 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { initChatModel } from "langchain";
-import {
-  getModelConfig,
-  getReasoningFields,
-  supportsTemperatureAtLevel,
-} from "@/constants/models";
 import type {
   ChatApiKeys,
   ChatMessage,
@@ -13,6 +8,11 @@ import type {
   ChatStreamEvent,
 } from "@/lib/chat/contracts";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
+import {
+  getModelConfig,
+  getReasoningFields,
+  supportsTemperatureAtLevel,
+} from "@/lib/models";
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_RETRIES = 2;

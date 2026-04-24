@@ -5,7 +5,7 @@ import {
   DEFAULT_MODEL,
   getModelConfig,
   MODEL_VALUES,
-} from "@/constants/models";
+} from "@/lib/models";
 import { createChatSlice } from "./slices/chats/chatSlice";
 import { createConfigSlice } from "./slices/configSlice";
 import { createUISlice } from "./slices/uiSlice";

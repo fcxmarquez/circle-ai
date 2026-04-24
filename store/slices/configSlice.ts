@@ -1,11 +1,7 @@
 import type { StateCreator } from "zustand";
-import {
-  DEFAULT_ENABLED_MODELS,
-  DEFAULT_MODEL,
-  getModelConfig,
-} from "@/constants/models";
 import { hasAnyApiKey } from "@/lib/chat/config";
 import { clearLocalModelCache } from "@/lib/local/localTransport";
+import { DEFAULT_ENABLED_MODELS, DEFAULT_MODEL, getModelConfig } from "@/lib/models";
 import type { Config, StoreState } from "../types";
 
 export interface ConfigSlice {
