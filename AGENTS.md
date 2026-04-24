@@ -31,7 +31,7 @@ This file provides guidance to AI agent when working with code in this repositor
 - `bun test --project=storybook` - Run only Storybook browser tests
 - `bun storybook` - Run Storybook development server
 - `bun build-storybook` - Build Storybook for production
-- `npx tsx --noEmit && bun lint && bun build` - Complete quality check (run this after finishing tasks)
+- `npx tsc --noEmit && bun lint && bun build` - Complete quality check (run this after finishing tasks)
 
 ### Git Workflow
 
