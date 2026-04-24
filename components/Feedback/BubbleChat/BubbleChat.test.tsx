@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  shouldShowPendingPlaceholder,
-  shouldShowThinkingBlock,
-} from "@/components/Feedback/BubbleChat";
+import { shouldShowPendingPlaceholder, shouldShowThinkingBlock } from ".";
 
 describe("BubbleChat", () => {
   it("does not render empty thinking UI before thinking text arrives", () => {

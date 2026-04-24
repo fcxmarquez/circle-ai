@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getModelConfig, getReasoningFields } from "@/constants/models";
+import { getModelConfig, getReasoningFields } from "./models";
 
 describe("getReasoningFields", () => {
   it("asks Google models to include returned thoughts", () => {
