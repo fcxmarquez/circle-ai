@@ -60,11 +60,11 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
           onKeyDown={handleKeyPress}
           disabled={isLoading || !canSend}
         />
-        {showReasoningSelector && (
+        {showReasoningSelector ? (
           <div className="absolute right-14 top-1/2 -translate-y-1/2">
             <ReasoningSelector />
           </div>
-        )}
+        ) : null}
         {canSend ? (
           isLoading ? (
             <Button

@@ -74,25 +74,25 @@ export function MultipleCombobox({
           disabled={disabled}
         >
           <div className="flex flex-wrap gap-1 flex-1 min-w-0">
-            {selectedOptions.length === 0 && (
+            {selectedOptions.length === 0 ? (
               <span className="text-muted-foreground truncate">{placeholder}</span>
-            )}
+            ) : null}
 
-            {selectedOptions.length === 1 && (
+            {selectedOptions.length === 1 ? (
               <div className="flex items-center gap-1 min-w-0 flex-1">
                 <span className="truncate">{selectedOptions[0].label}</span>
-                {selectedOptions[0].badge && (
+                {selectedOptions[0].badge ? (
                   <Badge
                     variant="secondary"
                     className="text-xs shrink-0 hidden sm:inline-flex"
                   >
                     {selectedOptions[0].badge}
                   </Badge>
-                )}
+                ) : null}
               </div>
-            )}
+            ) : null}
 
-            {selectedOptions.length > 1 && (
+            {selectedOptions.length > 1 ? (
               <div className="flex flex-wrap gap-1 min-w-0 flex-1">
                 <Badge variant="secondary" className="text-xs shrink-0">
                   {selectedOptions.length} selected
@@ -111,11 +111,11 @@ export function MultipleCombobox({
                       <X className="h-3 w-3 ml-1 shrink-0 hover:text-destructive" />
                     </Badge>
                   ))}
-                  {selectedOptions.length > 2 && (
+                  {selectedOptions.length > 2 ? (
                     <Badge variant="outline" className="text-xs shrink-0">
                       +{selectedOptions.length - 2}
                     </Badge>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Mobile: Show compact view */}
@@ -143,7 +143,7 @@ export function MultipleCombobox({
                   )}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -178,20 +178,20 @@ export function MultipleCombobox({
                         <span className="text-sm font-medium truncate">
                           {option.label}
                         </span>
-                        {option.description && (
+                        {option.description ? (
                           <span className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-1">
                             {option.description}
                           </span>
-                        )}
+                        ) : null}
                       </div>
-                      {option.badge && (
+                      {option.badge ? (
                         <Badge
                           variant="secondary"
                           className="text-xs shrink-0 self-start sm:self-center"
                         >
                           {option.badge}
                         </Badge>
-                      )}
+                      ) : null}
                     </div>
                   </CommandItem>
                 );

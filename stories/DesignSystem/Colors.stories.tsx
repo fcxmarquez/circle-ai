@@ -31,11 +31,11 @@ const ColorPalette = () => {
         <div style={{ fontSize: "12px", color: "#666", fontFamily: "monospace" }}>
           {color}
         </div>
-        {description && (
+        {description ? (
           <div style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
             {description}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

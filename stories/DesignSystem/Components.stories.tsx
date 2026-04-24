@@ -65,11 +65,11 @@ const Components = () => {
       <h4 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "8px" }}>
         {title}
       </h4>
-      {description && (
+      {description ? (
         <p style={{ fontSize: "12px", color: "#666", marginBottom: "12px" }}>
           {description}
         </p>
-      )}
+      ) : null}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {children}
       </div>

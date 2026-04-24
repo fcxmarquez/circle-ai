@@ -54,13 +54,13 @@ export function NavMain({
                 <item.icon className="size-4 shrink-0 text-muted-foreground" />
               </div>
               <span>{item.title}</span>
-              {item.shortcut && !isMobile && (
+              {item.shortcut && !isMobile ? (
                 <kbd className="ml-auto hidden items-center gap-0.5 text-xs text-muted-foreground group-hover/navitem:inline-flex">
                   {isMac ? <Command className="size-3" /> : "Ctrl"}{" "}
-                  {item.shiftKey && "Shift "}
+                  {item.shiftKey ? "Shift " : null}
                   {item.shortcut}
                 </kbd>
-              )}
+              ) : null}
             </button>
           </SidebarMenuButton>
         </SidebarMenuItem>
