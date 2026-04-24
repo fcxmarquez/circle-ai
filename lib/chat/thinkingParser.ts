@@ -9,6 +9,10 @@ export function createThinkingSplitter(
   openTag = "<think>",
   closeTag = "</think>"
 ): ThinkingSplitter {
+  if (!openTag || !closeTag) {
+    throw new Error("createThinkingSplitter requires non-empty openTag and closeTag");
+  }
+
   let buffer = "";
   let inThinking = false;
   const heldTailLength = Math.max(openTag.length, closeTag.length) - 1;

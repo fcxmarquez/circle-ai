@@ -32,4 +32,13 @@ describe("createThinkingSplitter", () => {
     ]);
     expect(splitter.flush()).toEqual([{ t: "thinking", d: "hinking" }]);
   });
+
+  it("rejects empty tags", () => {
+    expect(() => createThinkingSplitter("", "</think>")).toThrow(
+      "createThinkingSplitter requires non-empty openTag and closeTag"
+    );
+    expect(() => createThinkingSplitter("<think>", "")).toThrow(
+      "createThinkingSplitter requires non-empty openTag and closeTag"
+    );
+  });
 });

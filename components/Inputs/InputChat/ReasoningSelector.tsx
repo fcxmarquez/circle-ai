@@ -11,6 +11,7 @@ import {
   SignalMedium,
   SignalZero,
 } from "lucide-react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -42,6 +43,15 @@ const LEVEL_ICONS: Record<ReasoningLevel, LucideIcon> = {
 export function ReasoningSelector() {
   const { config, setConfig } = useConfig();
   const modelConfig = getModelConfig(config.selectedModel);
+
+  useEffect(() => {
+    const reasoning = modelConfig?.reasoning;
+    if (!reasoning?.configurable) return;
+
+    if (!reasoning.levels.includes(config.reasoningLevel)) {
+      setConfig({ reasoningLevel: reasoning.defaultLevel });
+    }
+  }, [config.reasoningLevel, modelConfig, setConfig]);
 
   if (!modelConfig?.reasoning.configurable) {
     return null;

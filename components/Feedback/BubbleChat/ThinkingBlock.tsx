@@ -14,7 +14,7 @@ import { MarkdownComponents } from "./MarkdownComponents";
 
 interface ThinkingBlockProps {
   thinking?: string;
-  status?: "pending" | "success" | "error" | undefined;
+  status?: "pending" | "success" | "error";
 }
 
 export function ThinkingBlock({ thinking, status }: ThinkingBlockProps) {
@@ -50,7 +50,6 @@ export function ThinkingBlock({ thinking, status }: ThinkingBlockProps) {
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-1 border-muted border-l pl-3 text-muted-foreground text-sm">
         <motion.div
-          key={thinking?.length}
           initial={{ opacity: 0.7, y: 2 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}

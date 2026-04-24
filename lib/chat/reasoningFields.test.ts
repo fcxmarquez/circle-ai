@@ -6,7 +6,7 @@ describe("getReasoningFields", () => {
     const model = getModelConfig("gemini-3.1-flash-lite-preview");
 
     expect(model).toBeDefined();
-    expect(model && getReasoningFields(model, "medium")).toEqual({
+    expect(getReasoningFields(model!, "medium")).toEqual({
       thinkingConfig: {
         includeThoughts: true,
         thinkingLevel: "MEDIUM",

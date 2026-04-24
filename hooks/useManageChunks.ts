@@ -34,10 +34,7 @@ export const useManageChunks = () => {
     (messageId: string, event: ChatStreamEvent) => {
       if (!event.d) return;
 
-      chunkBufferRef.current = {
-        ...chunkBufferRef.current,
-        [event.t]: chunkBufferRef.current[event.t] + event.d,
-      };
+      chunkBufferRef.current[event.t] += event.d;
       currentMessageIdRef.current = messageId;
 
       if (!flushIntervalRef.current) {
