@@ -6,7 +6,7 @@ import {
   getModelConfig,
   MODEL_VALUES,
 } from "@/constants/models";
-import { createChatSlice } from "./slices/chatSlice";
+import { createChatSlice } from "./slices/chats/chatSlice";
 import { createConfigSlice } from "./slices/configSlice";
 import { createUISlice } from "./slices/uiSlice";
 import { createUserSlice } from "./slices/userSlice";
@@ -23,7 +23,7 @@ export const useStore = create<StoreState>()(
       }),
       {
         name: "chat-store",
-        version: 5,
+        version: 6,
         migrate: (persistedState, version) => {
           const state = persistedState as { config?: Partial<Config> } | undefined;
           if (version < 2 && state?.config && state.config.reasoningLevel === undefined) {
@@ -59,6 +59,9 @@ export const useStore = create<StoreState>()(
             if (!enabled.includes("local-auto")) {
               state.config.enabledModels = ["local-auto", ...enabled];
             }
+          }
+          if (version < 6) {
+            // Message thinking is optional, so existing persisted chats need no backfill.
           }
           return state;
         },
@@ -108,6 +111,7 @@ export const useChat = () => {
 export const useChatActions = () => {
   const addMessage = useStore((state) => state.addMessage);
   const setChatError = useStore((state) => state.setChatError);
+  const setPendingRequest = useStore((state) => state.setPendingRequest);
   const clearChat = useStore((state) => state.clearChat);
   const createNewConversation = useStore((state) => state.createNewConversation);
   const setCurrentConversation = useStore((state) => state.setCurrentConversation);
@@ -115,6 +119,7 @@ export const useChatActions = () => {
   const deleteConversation = useStore((state) => state.deleteConversation);
   const deleteMessage = useStore((state) => state.deleteMessage);
   const updateMessageContent = useStore((state) => state.updateMessageContent);
+  const updateMessageThinking = useStore((state) => state.updateMessageThinking);
   const deleteLastMessage = useStore((state) => state.deleteLastMessage);
   const lastMessageToError = useStore((state) => state.lastMessageToError);
   const setMessageStatus = useStore((state) => state.setMessageStatus);
@@ -122,6 +127,7 @@ export const useChatActions = () => {
   return {
     addMessage,
     setChatError,
+    setPendingRequest,
     clearChat,
     createNewConversation,
     setCurrentConversation,
@@ -129,6 +135,7 @@ export const useChatActions = () => {
     deleteConversation,
     deleteMessage,
     updateMessageContent,
+    updateMessageThinking,
     deleteLastMessage,
     setMessageStatus,
     lastMessageToError,

@@ -1,8 +1,12 @@
-import type { ChatStreamRequest } from "./contracts";
+import {
+  type ChatStreamEvent,
+  ChatStreamEventSchema,
+  type ChatStreamRequest,
+} from "./contracts";
 
 interface StreamChatRequestOptions {
   signal?: AbortSignal;
-  onChunk?: (chunk: string) => void;
+  onChunk?: (event: ChatStreamEvent) => void;
 }
 
 async function getErrorMessage(response: Response): Promise<string> {
@@ -42,6 +46,23 @@ export async function streamChatRequest(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   const responseChunks: string[] = [];
+  let lineBuffer = "";
+
+  const processLine = (line: string) => {
+    if (!line) return;
+
+    try {
+      const parsed = ChatStreamEventSchema.safeParse(JSON.parse(line));
+      if (!parsed.success) return;
+
+      if (parsed.data.t === "content") {
+        responseChunks.push(parsed.data.d);
+      }
+      options.onChunk?.(parsed.data);
+    } catch {
+      // Ignore malformed stream lines so one bad frame does not kill the response.
+    }
+  };
 
   try {
     while (true) {
@@ -51,14 +72,22 @@ export async function streamChatRequest(
       const chunk = decoder.decode(value, { stream: true });
       if (!chunk) continue;
 
-      responseChunks.push(chunk);
-      options.onChunk?.(chunk);
+      lineBuffer += chunk;
+      const lines = lineBuffer.split("\n");
+      lineBuffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        processLine(line);
+      }
     }
 
     const finalChunk = decoder.decode();
     if (finalChunk) {
-      responseChunks.push(finalChunk);
-      options.onChunk?.(finalChunk);
+      lineBuffer += finalChunk;
+    }
+    if (lineBuffer) {
+      processLine(lineBuffer);
+      lineBuffer = "";
     }
   } finally {
     reader.releaseLock();

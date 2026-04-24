@@ -4,9 +4,11 @@ import { Send, Square } from "lucide-react";
 import { type FC, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getModelConfig } from "@/constants/models";
 import { canSendSelectedModel, getSelectedModelError } from "@/lib/chat/config";
 import { cn } from "@/lib/utils";
 import { useConfig, useUIActions } from "@/store";
+import { ReasoningSelector } from "./ReasoningSelector";
 
 interface InputChatProps {
   onSubmit: (message: string) => void;
@@ -20,6 +22,9 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
   const { config } = useConfig();
   const { setSettingsModalOpen } = useUIActions();
   const canSend = canSendSelectedModel(config);
+  const showReasoningSelector = Boolean(
+    canSend && getModelConfig(config.selectedModel)?.reasoning.configurable
+  );
   const disabledPlaceholder =
     getSelectedModelError(config) ?? "Configure your model settings to continue";
 
@@ -47,7 +52,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
         <Input
           className={cn(
             "min-h-[56px] w-full rounded-xl py-8 pl-4 text-base backdrop-blur-lg bg-background/50",
-            canSend ? "pr-14" : "pr-24"
+            showReasoningSelector ? "pr-[180px]" : canSend ? "pr-14" : "pr-24"
           )}
           placeholder={canSend ? "Ask anything" : disabledPlaceholder}
           value={message}
@@ -55,6 +60,11 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
           onKeyDown={handleKeyPress}
           disabled={isLoading || !canSend}
         />
+        {showReasoningSelector && (
+          <div className="absolute right-14 top-1/2 -translate-y-1/2">
+            <ReasoningSelector />
+          </div>
+        )}
         {canSend ? (
           isLoading ? (
             <Button

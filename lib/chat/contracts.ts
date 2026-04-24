@@ -51,3 +51,10 @@ export const ChatStreamRequestSchema = z.object({
 });
 
 export type ChatStreamRequest = z.infer<typeof ChatStreamRequestSchema>;
+
+export const ChatStreamEventSchema = z.object({
+  t: z.enum(["content", "thinking"]),
+  d: z.string(),
+});
+
+export type ChatStreamEvent = z.infer<typeof ChatStreamEventSchema>;

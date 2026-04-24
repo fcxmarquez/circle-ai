@@ -1,80 +1,7 @@
 import type { StateCreator } from "zustand";
-import type { StoreState } from "../types";
-
-type MessageStatus = "pending" | "success" | "error";
-
-export interface Message {
-  id: string;
-  content: string;
-  role: "user" | "assistant";
-  timestamp: number;
-  status: MessageStatus;
-}
-
-export interface Conversation {
-  id: string;
-  title: string;
-  messages: Message[];
-  lastModified: number;
-}
-
-export interface ChatSlice {
-  chat: {
-    conversations: Conversation[];
-    currentConversationId: string | null;
-    error: string | null;
-  };
-  addMessage: (message: Omit<Message, "id" | "timestamp" | "status">) => Message;
-  setChatError: (error: string | null) => void;
-  clearChat: () => void;
-  createNewConversation: (initialMessage: string) => string;
-  setCurrentConversation: (conversationId: string | null) => void;
-  updateConversationTitle: (conversationId: string, title: string) => void;
-  deleteConversation: (conversationId: string) => void;
-  deleteMessage: (messageId: string) => void;
-  deleteLastMessage: () => void;
-  updateMessageContent: (messageId: string, additionalContent: string) => void;
-  setMessageStatus: (messageId: string, status: MessageStatus) => void;
-  lastMessageToError: () => void;
-}
-
-const getCurrentConversationIndex = (state: StoreState) => {
-  return state.chat.conversations.findIndex(
-    (conv) => conv.id === state.chat.currentConversationId
-  );
-};
-
-const findMessageLocation = (state: StoreState, messageId: string) => {
-  const currentConversationIndex = getCurrentConversationIndex(state);
-
-  if (currentConversationIndex !== -1) {
-    const currentConversation = state.chat.conversations[currentConversationIndex];
-    const messageIndex = currentConversation.messages.findIndex(
-      (msg) => msg.id === messageId
-    );
-
-    if (messageIndex !== -1) {
-      return { conversationIndex: currentConversationIndex, messageIndex };
-    }
-  }
-
-  for (
-    let conversationIndex = 0;
-    conversationIndex < state.chat.conversations.length;
-    conversationIndex++
-  ) {
-    if (conversationIndex === currentConversationIndex) continue;
-
-    const conversation = state.chat.conversations[conversationIndex];
-    const messageIndex = conversation.messages.findIndex((msg) => msg.id === messageId);
-
-    if (messageIndex !== -1) {
-      return { conversationIndex, messageIndex };
-    }
-  }
-
-  return null;
-};
+import type { StoreState } from "../../types";
+import { findMessageLocation, getCurrentConversationIndex } from "./helpers";
+import type { ChatSlice, Conversation, Message, MessageStatus } from "./types";
 
 export const createChatSlice: StateCreator<
   StoreState,
@@ -86,6 +13,7 @@ export const createChatSlice: StateCreator<
     conversations: [],
     currentConversationId: null,
     error: null,
+    pendingRequest: null,
   },
 
   createNewConversation: (initialMessage) => {
@@ -210,6 +138,14 @@ export const createChatSlice: StateCreator<
 
   setChatError: (error) => set((state) => ({ chat: { ...state.chat, error } })),
 
+  setPendingRequest: (pendingRequest) =>
+    set((state) => ({
+      chat: {
+        ...state.chat,
+        pendingRequest,
+      },
+    })),
+
   clearChat: () =>
     set((state) => {
       const conversations = [...state.chat.conversations];
@@ -290,6 +226,40 @@ export const createChatSlice: StateCreator<
         ...conversation.messages[messageIndex],
         status: "success" as const,
         content: conversation.messages[messageIndex].content + additionalContent,
+      };
+
+      const updatedMessages = [...conversation.messages];
+      updatedMessages[messageIndex] = updatedMessage;
+
+      const updatedConversation = {
+        ...conversation,
+        messages: updatedMessages,
+        lastModified: Date.now(),
+      };
+
+      const updatedConversations = [...state.chat.conversations];
+      updatedConversations[conversationIndex] = updatedConversation;
+
+      return {
+        chat: {
+          ...state.chat,
+          conversations: updatedConversations,
+        },
+      };
+    }),
+
+  updateMessageThinking: (messageId, additionalThinking) =>
+    set((state) => {
+      const location = findMessageLocation(state, messageId);
+      if (!location) return state;
+
+      const { conversationIndex, messageIndex } = location;
+      const conversation = state.chat.conversations[conversationIndex];
+      const message = conversation.messages[messageIndex];
+
+      const updatedMessage = {
+        ...message,
+        thinking: `${message.thinking ?? ""}${additionalThinking}`,
       };
 
       const updatedMessages = [...conversation.messages];
