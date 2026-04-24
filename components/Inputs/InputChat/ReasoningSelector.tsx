@@ -20,7 +20,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getModelConfig, type ReasoningLevel } from "@/constants/models";
+import { getModelConfig, type ReasoningLevel } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { useConfig } from "@/store";
 
