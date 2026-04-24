@@ -10,8 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MODEL_LABELS } from "@/constants/models";
 import { getAvailableModels, getResolvedSelectedModel } from "@/lib/chat/config";
-import { MODEL_LABELS } from "@/lib/models";
 import { useConfig } from "@/store";
 import type { ModelType } from "@/store/types";
 

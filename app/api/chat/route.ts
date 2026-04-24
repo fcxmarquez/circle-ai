@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
+import { isLocalModel } from "@/constants/models";
 import { getSelectedModelError } from "@/lib/chat/config";
 import { ChatStreamRequestSchema } from "@/lib/chat/contracts";
 import { streamChatResponse } from "@/lib/langchain/chatService";
-import { isLocalModel } from "@/lib/models";
 
 function jsonError(error: string, status: number) {
   return Response.json({ error }, { status });
