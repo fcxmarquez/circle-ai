@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of stream) {
-            controller.enqueue(encoder.encode(chunk));
+          for await (const event of stream) {
+            controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
           }
         } catch (error: unknown) {
           console.error("Streaming error:", error);
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     return new Response(readable, {
       headers: {
-        "Content-Type": "text/plain; charset=utf-8",
+        "Content-Type": "application/x-ndjson; charset=utf-8",
         "Cache-Control": "no-store",
       },
     });

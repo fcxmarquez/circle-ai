@@ -1,16 +1,22 @@
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { isLocalModel } from "@/constants/models";
 import { streamChatRequest } from "@/lib/chat/client";
-import type { ChatMessage, ChatStreamRequest } from "@/lib/chat/contracts";
+import type {
+  ChatMessage,
+  ChatModelConfig,
+  ChatStreamRequest,
+} from "@/lib/chat/contracts";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
+import { createThinkingSplitter, type ThinkingSplitter } from "@/lib/chat/thinkingParser";
 import type { LocalModelSpec } from "@/lib/local/capabilities";
 import {
   MODEL_DOWNLOADED_KEY_PREFIX,
   streamLocalChatRequest,
 } from "@/lib/local/localTransport";
 import { useChat, useChatActions, useConfig } from "@/store";
+import type { PendingChatRequest } from "@/store/slices/chats/types";
 import { useManageChunks } from "./useManageChunks";
 
 export type LocalModelStatus = "idle" | "downloading" | "loading-cache" | "ready";
@@ -60,11 +66,21 @@ export const useCircleChat = () => {
   const [localModelSpec, setLocalModelSpec] = useState<LocalModelSpec | null>(null);
   const isSendingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const thinkingSplitterRef = useRef<ThinkingSplitter | null>(null);
+  const streamingMessageIdRef = useRef("");
   const router = useRouter();
-  const { currentConversationId, messages } = useChat();
+  const params = useParams<{ conversationId?: string }>();
+  const routeConversationId =
+    typeof params.conversationId === "string" ? params.conversationId : undefined;
+  const { currentConversationId, messages, pendingRequest } = useChat();
   const { config } = useConfig();
-  const { createNewConversation, addMessage, setMessageStatus, deleteMessage } =
-    useChatActions();
+  const {
+    createNewConversation,
+    addMessage,
+    setMessageStatus,
+    deleteMessage,
+    setPendingRequest,
+  } = useChatActions();
   const { accumulateChunk, flushChunks, flushIntervalRef } = useManageChunks();
 
   useEffect(() => {
@@ -73,8 +89,22 @@ export const useCircleChat = () => {
     };
   }, []);
 
-  const finishStreaming = () => {
+  const finishStreaming = useCallback(() => {
+    let flushedSplitter = false;
+    const splitter = thinkingSplitterRef.current;
+    const messageId = streamingMessageIdRef.current;
+
+    if (splitter && messageId) {
+      const events = splitter.flush();
+      flushedSplitter = events.length > 0;
+      for (const event of events) {
+        accumulateChunk(messageId, event);
+      }
+    }
+
     abortControllerRef.current = null;
+    thinkingSplitterRef.current = null;
+    streamingMessageIdRef.current = "";
 
     if (flushIntervalRef.current) {
       clearInterval(flushIntervalRef.current);
@@ -85,7 +115,129 @@ export const useCircleChat = () => {
     isSendingRef.current = false;
     setIsLoading(false);
     setLocalModelStatus("idle");
-  };
+
+    return flushedSplitter;
+  }, [accumulateChunk, flushChunks, flushIntervalRef]);
+
+  const startStreamingRequest = useCallback(
+    (request: PendingChatRequest) => {
+      if (isSendingRef.current || isLoading) {
+        return;
+      }
+
+      isSendingRef.current = true;
+      setError(null);
+      setIsLoading(true);
+      streamingMessageIdRef.current = request.assistantMessageId;
+
+      const useLocal = isLocalModel(request.config.selectedModel);
+
+      if (useLocal && !request.localSpec) {
+        finishStreaming();
+        deleteMessage(request.assistantMessageId);
+        toast.error("Local model requires consent before sending.");
+        return;
+      }
+
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+      let hasResponse = false;
+
+      const localThinkingSplitter = useLocal ? createThinkingSplitter() : null;
+      thinkingSplitterRef.current = localThinkingSplitter;
+
+      const streamPromise = useLocal
+        ? runLocalStream({
+            spec: request.localSpec as LocalModelSpec,
+            message: request.message,
+            history: request.history,
+            signal: abortController.signal,
+            onChunk: (chunk: string) => {
+              const events = localThinkingSplitter?.push(chunk) ?? [
+                { t: "content" as const, d: chunk },
+              ];
+              if (events.length > 0) {
+                hasResponse = true;
+              }
+              for (const event of events) {
+                accumulateChunk(request.assistantMessageId, event);
+              }
+            },
+            onModelStatus: (status, spec) => {
+              setLocalModelStatus(status);
+              setLocalModelSpec(spec);
+            },
+          })
+        : streamChatRequest(
+            {
+              message: request.message,
+              history: request.history,
+              config: request.config,
+            } satisfies ChatStreamRequest,
+            {
+              signal: abortController.signal,
+              onChunk: (event) => {
+                hasResponse = true;
+                accumulateChunk(request.assistantMessageId, event);
+              },
+            }
+          );
+
+      void streamPromise
+        .then(() => {
+          finishStreaming();
+          setError(null);
+          setMessageStatus(request.assistantMessageId, "success");
+        })
+        .catch((error: unknown) => {
+          const streamError =
+            error instanceof Error ? error : new Error("Unknown streaming error");
+
+          const flushedPendingResponse = finishStreaming();
+          hasResponse = hasResponse || flushedPendingResponse;
+
+          if (streamError.name === "AbortError") {
+            if (!hasResponse) {
+              deleteMessage(request.assistantMessageId);
+            } else {
+              setMessageStatus(request.assistantMessageId, "success");
+            }
+            return;
+          }
+
+          console.error("Streaming error:", streamError);
+          setError(streamError);
+
+          if (!hasResponse) {
+            deleteMessage(request.assistantMessageId);
+          } else {
+            setMessageStatus(request.assistantMessageId, "error");
+          }
+
+          const errorMessage = streamError.message.includes("API key")
+            ? "Invalid API key. Please check your settings."
+            : "Failed to send message. Please try again.";
+
+          toast.error(errorMessage);
+        });
+    },
+    [accumulateChunk, deleteMessage, finishStreaming, isLoading, setMessageStatus]
+  );
+
+  useEffect(() => {
+    if (!pendingRequest) return;
+    if (pendingRequest.conversationId !== routeConversationId) return;
+    if (pendingRequest.conversationId !== currentConversationId) return;
+
+    setPendingRequest(null);
+    startStreamingRequest(pendingRequest);
+  }, [
+    currentConversationId,
+    pendingRequest,
+    routeConversationId,
+    setPendingRequest,
+    startStreamingRequest,
+  ]);
 
   const sendMessage = (message: string, localSpec?: LocalModelSpec) => {
     if (isSendingRef.current || isLoading) {
@@ -95,14 +247,31 @@ export const useCircleChat = () => {
     const trimmedMessage = message.trim();
     if (!trimmedMessage) return;
 
-    isSendingRef.current = true;
     setError(null);
-    setIsLoading(true);
 
-    let newConversationId: string | null = null;
-    if (!currentConversationId) {
-      newConversationId = createNewConversation(trimmedMessage);
+    const useLocal = isLocalModel(config.selectedModel);
+    if (useLocal && !localSpec) {
+      toast.error("Local model requires consent before sending.");
+      return;
     }
+
+    const history: ChatMessage[] = messages.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+
+    const requestConfig: ChatModelConfig = {
+      openAIKey: config.openAIKey,
+      anthropicKey: config.anthropicKey,
+      googleKey: config.googleKey,
+      selectedModel: config.selectedModel,
+      reasoningLevel: config.reasoningLevel,
+    };
+
+    const isNewConversation = !currentConversationId;
+    const conversationId = isNewConversation
+      ? createNewConversation(trimmedMessage)
+      : currentConversationId;
 
     addMessage({
       content: trimmedMessage,
@@ -114,108 +283,24 @@ export const useCircleChat = () => {
       role: "assistant",
     });
 
-    const history: ChatMessage[] = messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
+    const request: PendingChatRequest = {
+      assistantMessageId: assistantMessage.id,
+      conversationId,
+      message: trimmedMessage,
+      history,
+      config: requestConfig,
+      ...(localSpec ? { localSpec } : {}),
+    };
 
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-    let hasResponse = false;
-
-    const useLocal = isLocalModel(config.selectedModel);
-
-    if (useLocal && !localSpec) {
-      finishStreaming();
-      deleteMessage(assistantMessage.id);
-      toast.error("Local model requires consent before sending.");
+    if (isNewConversation) {
+      isSendingRef.current = true;
+      setIsLoading(true);
+      setPendingRequest(request);
+      router.replace(`/c/${conversationId}`);
       return;
     }
 
-    const streamPromise = useLocal
-      ? runLocalStream({
-          spec: localSpec as LocalModelSpec,
-          message: trimmedMessage,
-          history,
-          signal: abortController.signal,
-          onChunk: (chunk: string) => {
-            hasResponse = true;
-            accumulateChunk(assistantMessage.id, chunk);
-          },
-          onModelStatus: (status, spec) => {
-            setLocalModelStatus(status);
-            setLocalModelSpec(spec);
-          },
-        })
-      : streamChatRequest(
-          {
-            message: trimmedMessage,
-            history,
-            config: {
-              openAIKey: config.openAIKey,
-              anthropicKey: config.anthropicKey,
-              googleKey: config.googleKey,
-              selectedModel: config.selectedModel,
-              reasoningLevel: config.reasoningLevel,
-            },
-          } satisfies ChatStreamRequest,
-          {
-            signal: abortController.signal,
-            onChunk: (chunk) => {
-              hasResponse = true;
-              accumulateChunk(assistantMessage.id, chunk);
-            },
-          }
-        );
-
-    void streamPromise
-      .then(() => {
-        finishStreaming();
-        setError(null);
-        setMessageStatus(assistantMessage.id, "success");
-
-        if (newConversationId) {
-          router.replace(`/c/${newConversationId}`);
-        }
-      })
-      .catch((error: unknown) => {
-        const streamError =
-          error instanceof Error ? error : new Error("Unknown streaming error");
-
-        finishStreaming();
-
-        if (streamError.name === "AbortError") {
-          if (!hasResponse) {
-            deleteMessage(assistantMessage.id);
-          } else {
-            setMessageStatus(assistantMessage.id, "success");
-          }
-
-          if (newConversationId) {
-            router.replace(`/c/${newConversationId}`);
-          }
-          return;
-        }
-
-        console.error("Streaming error:", streamError);
-        setError(streamError);
-
-        if (!hasResponse) {
-          deleteMessage(assistantMessage.id);
-        } else {
-          setMessageStatus(assistantMessage.id, "error");
-        }
-
-        const errorMessage = streamError.message.includes("API key")
-          ? "Invalid API key. Please check your settings."
-          : "Failed to send message. Please try again.";
-
-        toast.error(errorMessage);
-
-        if (newConversationId) {
-          router.replace(`/c/${newConversationId}`);
-        }
-      });
+    startStreamingRequest(request);
   };
 
   const stopGeneration = () => {

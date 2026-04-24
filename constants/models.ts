@@ -205,7 +205,7 @@ type OpenAIReasoningFields = {
 type GoogleThinkingLevel = "LOW" | "MEDIUM" | "HIGH";
 
 type GoogleReasoningFields = {
-  thinkingConfig?: { thinkingLevel: GoogleThinkingLevel };
+  thinkingConfig?: { includeThoughts: true; thinkingLevel: GoogleThinkingLevel };
 };
 
 export type ReasoningFields =
@@ -288,7 +288,7 @@ export function getReasoningFields(
   if (model.provider === "Google") {
     const thinkingLevel = GOOGLE_THINKING_LEVELS[level];
     if (!thinkingLevel) return {};
-    return { thinkingConfig: { thinkingLevel } };
+    return { thinkingConfig: { includeThoughts: true, thinkingLevel } };
   }
 
   return {};

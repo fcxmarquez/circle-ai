@@ -1,25 +1,43 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import type { ChatStreamEvent } from "@/lib/chat/contracts";
 import { useChatActions } from "@/store";
 
 export const useManageChunks = () => {
-  const chunkBufferRef = useRef("");
+  const chunkBufferRef = useRef({ content: "", thinking: "" });
   const currentMessageIdRef = useRef("");
   const flushIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { updateMessageContent } = useChatActions();
+  const { updateMessageContent, updateMessageThinking } = useChatActions();
 
   const flushChunks = useCallback(() => {
-    if (chunkBufferRef.current && currentMessageIdRef.current) {
-      updateMessageContent(currentMessageIdRef.current, chunkBufferRef.current);
-      chunkBufferRef.current = "";
+    if (!currentMessageIdRef.current) {
+      return;
     }
-  }, [updateMessageContent]);
+
+    const { content, thinking } = chunkBufferRef.current;
+
+    if (content) {
+      updateMessageContent(currentMessageIdRef.current, content);
+    }
+    if (thinking) {
+      updateMessageThinking(currentMessageIdRef.current, thinking);
+    }
+
+    if (content || thinking) {
+      chunkBufferRef.current = { content: "", thinking: "" };
+    }
+  }, [updateMessageContent, updateMessageThinking]);
 
   const accumulateChunk = useCallback(
-    (messageId: string, chunk: string) => {
-      chunkBufferRef.current += chunk;
+    (messageId: string, event: ChatStreamEvent) => {
+      if (!event.d) return;
+
+      chunkBufferRef.current = {
+        ...chunkBufferRef.current,
+        [event.t]: chunkBufferRef.current[event.t] + event.d,
+      };
       currentMessageIdRef.current = messageId;
 
       if (!flushIntervalRef.current) {

@@ -1,6 +1,6 @@
 import type { ModelValue, ReasoningLevel } from "@/constants/models";
 import type { ChatApiKeys } from "@/lib/chat/contracts";
-import type { ChatSlice } from "./slices/chatSlice";
+import type { ChatSlice } from "./slices/chats/types";
 import type { ConfigSlice } from "./slices/configSlice";
 import type { UISlice } from "./slices/uiSlice";
 import type { UserSlice } from "./slices/userSlice";

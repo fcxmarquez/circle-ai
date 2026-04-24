@@ -6,7 +6,12 @@ import {
   getReasoningFields,
   supportsTemperatureAtLevel,
 } from "@/constants/models";
-import type { ChatApiKeys, ChatMessage, ChatModelConfig } from "@/lib/chat/contracts";
+import type {
+  ChatApiKeys,
+  ChatMessage,
+  ChatModelConfig,
+  ChatStreamEvent,
+} from "@/lib/chat/contracts";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/chat/prompt";
 
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -93,7 +98,7 @@ export async function* streamChatResponse({
   config,
   systemPrompt = DEFAULT_SYSTEM_PROMPT,
   signal,
-}: StreamChatResponseOptions): AsyncGenerator<string, void, unknown> {
+}: StreamChatResponseOptions): AsyncGenerator<ChatStreamEvent, void, unknown> {
   try {
     const historyMessages = convertToLangChainMessages(history);
     const messages = [
@@ -109,9 +114,12 @@ export async function* streamChatResponse({
     });
 
     for await (const chunk of stream) {
-      const chunkText = chunk.text;
-      if (chunkText) {
-        yield chunkText;
+      for (const block of chunk.contentBlocks) {
+        if (block.type === "text" && block.text) {
+          yield { t: "content", d: block.text };
+        } else if (block.type === "reasoning" && block.reasoning) {
+          yield { t: "thinking", d: block.reasoning };
+        }
       }
     }
   } catch (error) {
