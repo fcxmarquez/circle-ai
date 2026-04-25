@@ -4,7 +4,7 @@ import {
   type ModelValue,
   REASONING_LEVELS,
   type ReasoningLevel,
-} from "@/constants/models";
+} from "@/lib/models";
 
 export const ChatRoleSchema = z.enum(["user", "assistant"]);
 

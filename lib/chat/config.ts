@@ -1,4 +1,4 @@
-import { type ApiKeyType, getModelConfig, type ModelValue } from "@/constants/models";
+import { type ApiKeyType, getModelConfig, type ModelValue } from "@/lib/models";
 import type { ChatApiKeys, ChatModelSelection } from "./contracts";
 
 type ChatSelectionConfig = ChatApiKeys & {
