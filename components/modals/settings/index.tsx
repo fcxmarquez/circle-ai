@@ -40,18 +40,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import type { ModelValue } from "@/constants/models";
-import {
-  DEFAULT_ENABLED_MODELS,
-  DEFAULT_MODEL,
-  MODEL_OPTIONS,
-  MODEL_VALUES,
-} from "@/constants/models";
 import {
   getAvailableModels,
   getConfigIssues,
   hasRequiredKeyForModel,
 } from "@/lib/chat/config";
+import {
+  DEFAULT_ENABLED_MODELS,
+  DEFAULT_MODEL,
+  MODEL_OPTIONS,
+  MODEL_VALUES,
+  type ModelValue,
+} from "@/lib/models";
 import { useConfig, useUserActions } from "@/store";
 import type { ModelType } from "@/store/types";
 import { createClient } from "@/utils/supabase/client";

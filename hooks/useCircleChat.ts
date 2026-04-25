@@ -1,7 +1,6 @@
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { isLocalModel } from "@/constants/models";
 import { streamChatRequest } from "@/lib/chat/client";
 import type {
   ChatMessage,
@@ -15,6 +14,7 @@ import {
   MODEL_DOWNLOADED_KEY_PREFIX,
   streamLocalChatRequest,
 } from "@/lib/local/localTransport";
+import { isLocalModel } from "@/lib/models";
 import {
   useChat,
   useChatActions,

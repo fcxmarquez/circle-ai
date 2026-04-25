@@ -1,5 +1,5 @@
-import type { ModelValue, ReasoningLevel } from "@/constants/models";
 import type { ChatApiKeys } from "@/lib/chat/contracts";
+import type { ModelValue, ReasoningLevel } from "@/lib/models";
 import type { ChatSlice } from "./slices/chats/types";
 import type { ConfigSlice } from "./slices/configSlice";
 import type { StreamingSlice } from "./slices/streamingSlice";
