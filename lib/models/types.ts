@@ -21,9 +21,9 @@ export interface ModelDefinition {
   reasoning: ModelReasoning;
 }
 
-type AnthropicAdaptiveEffort = "low" | "medium" | "high" | "max";
+export type AnthropicAdaptiveEffort = "low" | "medium" | "high" | "max";
 
-type AnthropicReasoningFields = {
+export type AnthropicReasoningFields = {
   thinking?:
     | { type: "enabled"; budget_tokens: number }
     | { type: "adaptive" }
@@ -31,15 +31,15 @@ type AnthropicReasoningFields = {
   outputConfig?: { effort: AnthropicAdaptiveEffort };
 };
 
-type OpenAIReasoningEffort = "none" | "low" | "medium" | "high" | "xhigh";
+export type OpenAIReasoningEffort = "none" | "low" | "medium" | "high" | "xhigh";
 
-type OpenAIReasoningFields = {
+export type OpenAIReasoningFields = {
   reasoning?: { effort: OpenAIReasoningEffort };
 };
 
-type GoogleThinkingLevel = "LOW" | "MEDIUM" | "HIGH";
+export type GoogleThinkingLevel = "LOW" | "MEDIUM" | "HIGH";
 
-type GoogleReasoningFields = {
+export type GoogleReasoningFields = {
   thinkingConfig?: { includeThoughts: true; thinkingLevel: GoogleThinkingLevel };
 };
 
@@ -47,12 +47,3 @@ export type ReasoningFields =
   | AnthropicReasoningFields
   | OpenAIReasoningFields
   | GoogleReasoningFields;
-
-export type {
-  AnthropicAdaptiveEffort,
-  AnthropicReasoningFields,
-  GoogleReasoningFields,
-  GoogleThinkingLevel,
-  OpenAIReasoningEffort,
-  OpenAIReasoningFields,
-};

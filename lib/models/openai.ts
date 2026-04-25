@@ -1,41 +1,33 @@
 import type { ModelDefinition, OpenAIReasoningFields, ReasoningLevel } from "./types";
 
+const OPENAI_REASONING = {
+  configurable: true,
+  supportsTemperature: true,
+  defaultLevel: "none",
+  levels: ["none", "low", "medium", "high", "max"],
+} as const satisfies ModelDefinition["reasoning"];
+
 export const OPENAI_MODELS = [
   {
     value: "gpt-5.4",
     label: "GPT-5.4",
     provider: "OpenAI",
     requiresKey: "openAIKey",
-    reasoning: {
-      configurable: true,
-      supportsTemperature: true,
-      defaultLevel: "none",
-      levels: ["none", "low", "medium", "high", "max"],
-    },
+    reasoning: OPENAI_REASONING,
   },
   {
     value: "gpt-5.4-mini",
     label: "GPT-5.4 Mini",
     provider: "OpenAI",
     requiresKey: "openAIKey",
-    reasoning: {
-      configurable: true,
-      supportsTemperature: true,
-      defaultLevel: "none",
-      levels: ["none", "low", "medium", "high", "max"],
-    },
+    reasoning: OPENAI_REASONING,
   },
   {
     value: "gpt-5.4-nano",
     label: "GPT-5.4 Nano",
     provider: "OpenAI",
     requiresKey: "openAIKey",
-    reasoning: {
-      configurable: true,
-      supportsTemperature: true,
-      defaultLevel: "none",
-      levels: ["none", "low", "medium", "high", "max"],
-    },
+    reasoning: OPENAI_REASONING,
   },
 ] as const satisfies readonly ModelDefinition[];
 

@@ -67,9 +67,8 @@ export function getAnthropicReasoningFields(
   level: ReasoningLevel
 ): AnthropicReasoningFields {
   if (ADAPTIVE_MODELS.has(model.value)) {
-    if (level === "none") return {};
     const effort = ADAPTIVE_EFFORTS[level];
-    if (!effort) return {};
+    if (effort === null) return {};
     return { thinking: { type: "adaptive" }, outputConfig: { effort } };
   }
 

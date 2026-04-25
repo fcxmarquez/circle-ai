@@ -45,12 +45,12 @@ import {
   getConfigIssues,
   hasRequiredKeyForModel,
 } from "@/lib/chat/config";
-import type { ModelValue } from "@/lib/models";
 import {
   DEFAULT_ENABLED_MODELS,
   DEFAULT_MODEL,
   MODEL_OPTIONS,
   MODEL_VALUES,
+  type ModelValue,
 } from "@/lib/models";
 import { useConfig, useUserActions } from "@/store";
 import type { ModelType } from "@/store/types";

@@ -138,7 +138,7 @@ Required environment variables:
 
 ### Code Quality
 
-- Always run `npx tsx --noEmit && bun lint && bun build` after completing tasks
+- Always run `npx tsc --noEmit && bun lint && bun build` after completing tasks
 - Use conventional commit messages
 - Follow existing component patterns and naming conventions
 

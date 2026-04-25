@@ -29,18 +29,18 @@ export const MODEL_OPTIONS = [
 export type ModelValue = (typeof MODEL_OPTIONS)[number]["value"];
 
 export const DEFAULT_MODEL: ModelValue = "local-auto";
-export const DEFAULT_ENABLED_MODELS: ModelValue[] = [
+export const DEFAULT_ENABLED_MODELS: readonly ModelValue[] = [
   "local-auto",
   "claude-sonnet-4-6",
   "gpt-5.4-mini",
 ];
 
-export function isLocalModel(modelValue: string): boolean {
-  return getModelConfig(modelValue)?.provider === "Local";
-}
-
 export function getModelConfig(modelValue: string): ModelDefinition | undefined {
   return MODEL_OPTIONS.find((m) => m.value === modelValue);
+}
+
+export function isLocalModel(modelValue: string): boolean {
+  return getModelConfig(modelValue)?.provider === "Local";
 }
 
 export const MODEL_LABELS = MODEL_OPTIONS.reduce(
