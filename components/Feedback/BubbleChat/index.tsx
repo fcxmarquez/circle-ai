@@ -1,6 +1,7 @@
 "use client";
 
 import { Bot, User } from "lucide-react";
+import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,7 @@ interface BubbleChatProps {
   name: string;
   role?: "user" | "assistant";
   status?: "pending" | "success" | "error" | undefined;
+  isThinking?: boolean;
   isLastMessage?: boolean;
 }
 
@@ -39,12 +41,13 @@ export function shouldShowPendingPlaceholder({
   );
 }
 
-export const BubbleChat = ({
+const BubbleChatComponent = ({
   message,
   thinking,
   name,
   role = "user",
   status = "pending",
+  isThinking = false,
   isLastMessage = false,
 }: BubbleChatProps) => {
   const showThinking = shouldShowThinkingBlock({
@@ -81,7 +84,9 @@ export const BubbleChat = ({
               isLastMessage && "min-h-[calc(100dvh-350px)]"
             )}
           >
-            {showThinking ? <ThinkingBlock thinking={thinking} status={status} /> : null}
+            {showThinking ? (
+              <ThinkingBlock thinking={thinking} isThinking={isThinking} />
+            ) : null}
             {showPendingPlaceholder ? (
               <div className="flex gap-1">
                 <span className="animate-bounce">.</span>
@@ -99,3 +104,5 @@ export const BubbleChat = ({
     </div>
   );
 };
+
+export const BubbleChat = memo(BubbleChatComponent);

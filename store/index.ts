@@ -8,6 +8,7 @@ import {
 } from "@/constants/models";
 import { createChatSlice } from "./slices/chats/chatSlice";
 import { createConfigSlice } from "./slices/configSlice";
+import { createStreamingSlice } from "./slices/streamingSlice";
 import { createUISlice } from "./slices/uiSlice";
 import { createUserSlice } from "./slices/userSlice";
 import type { Config, StoreState } from "./types";
@@ -20,6 +21,7 @@ export const useStore = create<StoreState>()(
         ...createChatSlice(set, get, api),
         ...createConfigSlice(set, get, api),
         ...createUserSlice(set, get, api),
+        ...createStreamingSlice(set, get, api),
       }),
       {
         name: "chat-store",
@@ -118,8 +120,7 @@ export const useChatActions = () => {
   const updateConversationTitle = useStore((state) => state.updateConversationTitle);
   const deleteConversation = useStore((state) => state.deleteConversation);
   const deleteMessage = useStore((state) => state.deleteMessage);
-  const updateMessageContent = useStore((state) => state.updateMessageContent);
-  const updateMessageThinking = useStore((state) => state.updateMessageThinking);
+  const setMessageContent = useStore((state) => state.setMessageContent);
   const deleteLastMessage = useStore((state) => state.deleteLastMessage);
   const lastMessageToError = useStore((state) => state.lastMessageToError);
   const setMessageStatus = useStore((state) => state.setMessageStatus);
@@ -134,11 +135,22 @@ export const useChatActions = () => {
     updateConversationTitle,
     deleteConversation,
     deleteMessage,
-    updateMessageContent,
-    updateMessageThinking,
+    setMessageContent,
     deleteLastMessage,
     setMessageStatus,
     lastMessageToError,
+  };
+};
+
+export const useStreamingActions = () => {
+  const startStreaming = useStore((state) => state.startStreaming);
+  const appendStreamingChunk = useStore((state) => state.appendStreamingChunk);
+  const endStreaming = useStore((state) => state.endStreaming);
+
+  return {
+    startStreaming,
+    appendStreamingChunk,
+    endStreaming,
   };
 };
 
