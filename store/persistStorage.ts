@@ -16,6 +16,11 @@ const isQuotaError = (error: unknown): boolean => {
   return /quota/i.test(error.message);
 };
 
+/**
+ * Skips writes when the persisted chat/config references match lastConvos and
+ * lastConfig. Persisted slices must use immutable updates for those fields; an
+ * in-place mutation would keep the same reference and skip the storage write.
+ */
 export const dedupedJSONStorage: PersistStorage<PersistedSlice> = {
   getItem: (name) => {
     if (typeof window === "undefined") return null;

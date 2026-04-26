@@ -133,7 +133,9 @@ describe("dedupedJSONStorage", () => {
       config: v1.state.config,
     });
     dedupedJSONStorage.setItem(NAME, v2);
-    expect(warnSpy).toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("localStorage quota exceeded")
+    );
 
     // After quota failure, dedupe refs are reset; same payload retries on next call.
     storage.setItem.mockClear();
