@@ -14,12 +14,10 @@ import { MarkdownComponents } from "./MarkdownComponents";
 
 interface ThinkingBlockProps {
   thinking?: string;
-  status?: "pending" | "success" | "error";
+  isThinking?: boolean;
 }
 
-export function ThinkingBlock({ thinking, status }: ThinkingBlockProps) {
-  const isThinking = status === "pending";
-
+export function ThinkingBlock({ thinking, isThinking = false }: ThinkingBlockProps) {
   return (
     <Collapsible defaultOpen={false} className="not-prose mb-3 text-muted-foreground">
       <CollapsibleTrigger

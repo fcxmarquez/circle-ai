@@ -45,8 +45,7 @@ export interface ChatSlice {
   deleteConversation: (conversationId: string) => void;
   deleteMessage: (messageId: string) => void;
   deleteLastMessage: () => void;
-  updateMessageContent: (messageId: string, additionalContent: string) => void;
-  updateMessageThinking: (messageId: string, additionalThinking: string) => void;
+  setMessageContent: (messageId: string, content: string, thinking?: string) => void;
   setMessageStatus: (messageId: string, status: MessageStatus) => void;
   lastMessageToError: () => void;
 }

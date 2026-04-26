@@ -213,42 +213,7 @@ export const createChatSlice: StateCreator<
       };
     }),
 
-  updateMessageContent: (messageId, additionalContent) =>
-    set((state) => {
-      const location = findMessageLocation(state, messageId);
-      if (!location) return state;
-
-      const { conversationIndex, messageIndex } = location;
-
-      const conversation = state.chat.conversations[conversationIndex];
-
-      const updatedMessage = {
-        ...conversation.messages[messageIndex],
-        status: "success" as const,
-        content: conversation.messages[messageIndex].content + additionalContent,
-      };
-
-      const updatedMessages = [...conversation.messages];
-      updatedMessages[messageIndex] = updatedMessage;
-
-      const updatedConversation = {
-        ...conversation,
-        messages: updatedMessages,
-        lastModified: Date.now(),
-      };
-
-      const updatedConversations = [...state.chat.conversations];
-      updatedConversations[conversationIndex] = updatedConversation;
-
-      return {
-        chat: {
-          ...state.chat,
-          conversations: updatedConversations,
-        },
-      };
-    }),
-
-  updateMessageThinking: (messageId, additionalThinking) =>
+  setMessageContent: (messageId, content, thinking) =>
     set((state) => {
       const location = findMessageLocation(state, messageId);
       if (!location) return state;
@@ -257,15 +222,16 @@ export const createChatSlice: StateCreator<
       const conversation = state.chat.conversations[conversationIndex];
       const message = conversation.messages[messageIndex];
 
-      const updatedMessage = {
+      const updatedMessage: Message = {
         ...message,
-        thinking: `${message.thinking ?? ""}${additionalThinking}`,
+        content,
+        ...(thinking ? { thinking } : {}),
       };
 
       const updatedMessages = [...conversation.messages];
       updatedMessages[messageIndex] = updatedMessage;
 
-      const updatedConversation = {
+      const updatedConversation: Conversation = {
         ...conversation,
         messages: updatedMessages,
         lastModified: Date.now(),

@@ -2,6 +2,7 @@ import type { ChatApiKeys } from "@/lib/chat/contracts";
 import type { ModelValue, ReasoningLevel } from "@/lib/models";
 import type { ChatSlice } from "./slices/chats/types";
 import type { ConfigSlice } from "./slices/configSlice";
+import type { StreamingSlice } from "./slices/streamingSlice";
 import type { UISlice } from "./slices/uiSlice";
 import type { UserSlice } from "./slices/userSlice";
 
@@ -24,4 +25,4 @@ export interface UIState {
   };
 }
 
-export type StoreState = UISlice & ChatSlice & ConfigSlice & UserSlice;
+export type StoreState = UISlice & ChatSlice & ConfigSlice & UserSlice & StreamingSlice;

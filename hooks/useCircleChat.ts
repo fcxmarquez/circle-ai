@@ -15,7 +15,13 @@ import {
   streamLocalChatRequest,
 } from "@/lib/local/localTransport";
 import { isLocalModel } from "@/lib/models";
-import { useChat, useChatActions, useConfig } from "@/store";
+import {
+  useChat,
+  useChatActions,
+  useConfig,
+  useStore,
+  useStreamingActions,
+} from "@/store";
 import type { PendingChatRequest } from "@/store/slices/chats/types";
 import { useManageChunks } from "./useManageChunks";
 
@@ -67,7 +73,6 @@ export const useCircleChat = () => {
   const isSendingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const thinkingSplitterRef = useRef<ThinkingSplitter | null>(null);
-  const streamingMessageIdRef = useRef("");
   const router = useRouter();
   const params = useParams<{ conversationId?: string }>();
   const routeConversationId =
@@ -78,10 +83,12 @@ export const useCircleChat = () => {
     createNewConversation,
     addMessage,
     setMessageStatus,
+    setMessageContent,
     deleteMessage,
     setPendingRequest,
   } = useChatActions();
-  const { accumulateChunk, flushChunks, flushIntervalRef } = useManageChunks();
+  const { startStreaming, endStreaming } = useStreamingActions();
+  const { accumulateChunk, flushImmediately, discardPending } = useManageChunks();
 
   useEffect(() => {
     return () => {
@@ -89,35 +96,43 @@ export const useCircleChat = () => {
     };
   }, []);
 
-  const finishStreaming = useCallback(() => {
-    let flushedSplitter = false;
-    const splitter = thinkingSplitterRef.current;
-    const messageId = streamingMessageIdRef.current;
+  const finishStreaming = useCallback(
+    (messageId: string) => {
+      const stillOwnsStream = useStore.getState().streaming.activeMessageId === messageId;
 
-    if (splitter && messageId) {
-      const events = splitter.flush();
-      flushedSplitter = events.length > 0;
-      for (const event of events) {
-        accumulateChunk(messageId, event);
+      let flushedSplitter = false;
+
+      if (stillOwnsStream) {
+        const splitter = thinkingSplitterRef.current;
+        if (splitter) {
+          const events = splitter.flush();
+          flushedSplitter = events.length > 0;
+          for (const event of events) {
+            accumulateChunk(messageId, event);
+          }
+        }
+
+        flushImmediately();
+
+        const { activeMessageId, content, thinking } = useStore.getState().streaming;
+        if (activeMessageId === messageId) {
+          setMessageContent(messageId, content, thinking || undefined);
+          endStreaming();
+        }
+      } else {
+        discardPending();
       }
-    }
 
-    abortControllerRef.current = null;
-    thinkingSplitterRef.current = null;
-    streamingMessageIdRef.current = "";
+      abortControllerRef.current = null;
+      thinkingSplitterRef.current = null;
+      isSendingRef.current = false;
+      setIsLoading(false);
+      setLocalModelStatus("idle");
 
-    if (flushIntervalRef.current) {
-      clearInterval(flushIntervalRef.current);
-      flushIntervalRef.current = null;
-    }
-
-    flushChunks();
-    isSendingRef.current = false;
-    setIsLoading(false);
-    setLocalModelStatus("idle");
-
-    return flushedSplitter;
-  }, [accumulateChunk, flushChunks, flushIntervalRef]);
+      return flushedSplitter;
+    },
+    [accumulateChunk, discardPending, endStreaming, flushImmediately, setMessageContent]
+  );
 
   const startStreamingRequest = useCallback(
     (request: PendingChatRequest) => {
@@ -128,12 +143,12 @@ export const useCircleChat = () => {
       isSendingRef.current = true;
       setError(null);
       setIsLoading(true);
-      streamingMessageIdRef.current = request.assistantMessageId;
+      startStreaming(request.assistantMessageId);
 
       const useLocal = isLocalModel(request.config.selectedModel);
 
       if (useLocal && !request.localSpec) {
-        finishStreaming();
+        finishStreaming(request.assistantMessageId);
         deleteMessage(request.assistantMessageId);
         toast.error("Local model requires consent before sending.");
         return;
@@ -185,7 +200,7 @@ export const useCircleChat = () => {
 
       void streamPromise
         .then(() => {
-          finishStreaming();
+          finishStreaming(request.assistantMessageId);
           setError(null);
           setMessageStatus(request.assistantMessageId, "success");
         })
@@ -193,7 +208,7 @@ export const useCircleChat = () => {
           const streamError =
             error instanceof Error ? error : new Error("Unknown streaming error");
 
-          const flushedPendingResponse = finishStreaming();
+          const flushedPendingResponse = finishStreaming(request.assistantMessageId);
           hasResponse = hasResponse || flushedPendingResponse;
 
           if (streamError.name === "AbortError") {
@@ -221,7 +236,14 @@ export const useCircleChat = () => {
           toast.error(errorMessage);
         });
     },
-    [accumulateChunk, deleteMessage, finishStreaming, isLoading, setMessageStatus]
+    [
+      accumulateChunk,
+      deleteMessage,
+      finishStreaming,
+      isLoading,
+      setMessageStatus,
+      startStreaming,
+    ]
   );
 
   useEffect(() => {
