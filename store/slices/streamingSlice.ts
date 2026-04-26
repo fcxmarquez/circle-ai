@@ -38,13 +38,17 @@ export const createStreamingSlice: StateCreator<
     })),
 
   appendStreamingChunk: (chunk) =>
-    set((state) => ({
-      streaming: {
-        ...state.streaming,
-        content: state.streaming.content + chunk.content,
-        thinking: state.streaming.thinking + chunk.thinking,
-      },
-    })),
+    set((state) => {
+      if (!state.streaming.activeMessageId) return state;
+
+      return {
+        streaming: {
+          ...state.streaming,
+          content: state.streaming.content + chunk.content,
+          thinking: state.streaming.thinking + chunk.thinking,
+        },
+      };
+    }),
 
   endStreaming: () => set(() => ({ streaming: INITIAL_STREAMING })),
 });

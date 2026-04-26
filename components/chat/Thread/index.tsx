@@ -13,7 +13,7 @@ export const Thread = ({ messages }: ThreadProps) => {
 
   return (
     <>
-      {messages.map((message) => {
+      {messages.map((message, index) => {
         const isStreaming = streaming.activeMessageId === message.id;
         const isThinking =
           isStreaming && Boolean(streaming.thinking.trim()) && !streaming.content.trim();
@@ -27,7 +27,7 @@ export const Thread = ({ messages }: ThreadProps) => {
             role={message.role}
             status={message.status}
             isThinking={isThinking}
-            isLastMessage={message.id === messages[messages.length - 1].id}
+            isLastMessage={index === messages.length - 1}
           />
         );
       })}
