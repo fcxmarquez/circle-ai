@@ -24,6 +24,7 @@ export default defineConfig({
             "components/**/*.test.{ts,tsx}",
             "constants/**/*.test.ts",
             "lib/**/*.test.ts",
+            "store/**/*.test.ts",
           ],
         },
       },
