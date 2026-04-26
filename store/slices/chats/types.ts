@@ -39,6 +39,7 @@ export interface ChatSlice {
   setChatError: (error: string | null) => void;
   setPendingRequest: (request: PendingChatRequest | null) => void;
   clearChat: () => void;
+  clearAllConversations: () => void;
   createNewConversation: (initialMessage: string) => string;
   setCurrentConversation: (conversationId: string | null) => void;
   updateConversationTitle: (conversationId: string, title: string) => void;

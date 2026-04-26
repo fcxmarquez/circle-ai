@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { Providers } from "./providers";
 import "./globals.css";
 import { AppSidebar } from "@/components/app-sidebar";
+import { DevToolsBubble } from "@/components/dev-tools/DevToolsBubble";
 import { GlobalShortcuts } from "@/components/global-shortcuts";
 import { ModalRender } from "@/components/modals/ModalRender";
 import { ShadcnModalRender } from "@/components/modals/shadcn-modal-render";
@@ -23,6 +24,9 @@ export const metadata: Metadata = {
   title: "Circle",
   description: "AI-powered chat application",
 };
+
+const enableDevTools =
+  process.env.NODE_ENV === "development" && process.env.ENABLE_DEV_TOOLS === "true";
 
 /**
  * Defines the root layout for the Next.js application with a modern sidebar layout.
@@ -58,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </header>
               {children}
             </SidebarInset>
+            {enableDevTools ? <DevToolsBubble /> : null}
           </SidebarProvider>
         </Providers>
         <Analytics />

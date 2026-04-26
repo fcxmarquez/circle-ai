@@ -167,6 +167,17 @@ export const createChatSlice: StateCreator<
       };
     }),
 
+  clearAllConversations: () =>
+    set((state) => ({
+      chat: {
+        ...state.chat,
+        conversations: [],
+        currentConversationId: null,
+        error: null,
+        pendingRequest: null,
+      },
+    })),
+
   deleteConversation: (conversationId) =>
     set((state) => {
       const conversations = state.chat.conversations.filter(
