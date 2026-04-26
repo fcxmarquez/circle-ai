@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { HiCheck, HiOutlineClipboard } from "react-icons/hi2";
 import { LuArrowRightFromLine, LuWrapText } from "react-icons/lu";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -26,7 +26,7 @@ const fadeInAnimation = {
   transition: { duration: 0.3 },
 };
 
-export const CodeBlock = ({ language, children }: CodeBlockProps) => {
+const CodeBlockComponent = ({ language, children }: CodeBlockProps) => {
   const [isWrapped, setIsWrapped] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -132,3 +132,5 @@ export const CodeBlock = ({ language, children }: CodeBlockProps) => {
     </motion.div>
   );
 };
+
+export const CodeBlock = memo(CodeBlockComponent);

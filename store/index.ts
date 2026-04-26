@@ -6,6 +6,7 @@ import {
   getModelConfig,
   MODEL_VALUES,
 } from "@/lib/models";
+import { dedupedJSONStorage, type PersistedSlice } from "./persistStorage";
 import { createChatSlice } from "./slices/chats/chatSlice";
 import { createConfigSlice } from "./slices/configSlice";
 import { createStreamingSlice } from "./slices/streamingSlice";
@@ -26,6 +27,7 @@ export const useStore = create<StoreState>()(
       {
         name: "chat-store",
         version: 6,
+        storage: dedupedJSONStorage,
         migrate: (persistedState, version) => {
           const state = persistedState as { config?: Partial<Config> } | undefined;
           if (version < 2 && state?.config && state.config.reasoningLevel === undefined) {
@@ -65,9 +67,9 @@ export const useStore = create<StoreState>()(
           if (version < 6) {
             // Message thinking is optional, so existing persisted chats need no backfill.
           }
-          return state;
+          return state as PersistedSlice;
         },
-        partialize: (state) => ({
+        partialize: (state): PersistedSlice => ({
           chat: {
             conversations: state.chat.conversations,
           },
