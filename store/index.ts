@@ -117,6 +117,7 @@ export const useChatActions = () => {
   const setChatError = useStore((state) => state.setChatError);
   const setPendingRequest = useStore((state) => state.setPendingRequest);
   const clearChat = useStore((state) => state.clearChat);
+  const clearAllConversations = useStore((state) => state.clearAllConversations);
   const createNewConversation = useStore((state) => state.createNewConversation);
   const setCurrentConversation = useStore((state) => state.setCurrentConversation);
   const updateConversationTitle = useStore((state) => state.updateConversationTitle);
@@ -132,6 +133,7 @@ export const useChatActions = () => {
     setChatError,
     setPendingRequest,
     clearChat,
+    clearAllConversations,
     createNewConversation,
     setCurrentConversation,
     updateConversationTitle,
