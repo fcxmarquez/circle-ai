@@ -28,6 +28,11 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
   const showReasoningSelector = Boolean(
     canSend && getModelConfig(config.selectedModel)?.reasoning.configurable
   );
+  const inputPaddingClass = showReasoningSelector
+    ? "pr-[180px]"
+    : canSend
+      ? "pr-14"
+      : "pr-24";
   const disabledPlaceholder =
     getSelectedModelError(config) ?? "Configure your model settings to continue";
 
@@ -38,11 +43,15 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
       return;
     }
 
+    if (textarea.value !== message || !textarea.classList.contains(inputPaddingClass)) {
+      return;
+    }
+
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_INPUT_HEIGHT)}px`;
     textarea.style.overflowY =
       textarea.scrollHeight > MAX_INPUT_HEIGHT ? "auto" : "hidden";
-  });
+  }, [inputPaddingClass, message]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -73,7 +82,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
           ref={textareaRef}
           className={cn(
             "min-h-[56px] max-h-[200px] w-full resize-none rounded-xl py-4 pl-4 text-base leading-6 backdrop-blur-lg bg-background/50",
-            showReasoningSelector ? "pr-[180px]" : canSend ? "pr-14" : "pr-24"
+            inputPaddingClass
           )}
           placeholder={canSend ? "Ask anything" : disabledPlaceholder}
           value={message}
