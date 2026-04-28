@@ -52,6 +52,10 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing) {
+      return;
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
