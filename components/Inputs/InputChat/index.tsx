@@ -1,9 +1,9 @@
 "use client";
 
 import { Send, Square } from "lucide-react";
-import { type FC, useState } from "react";
+import { type FC, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { canSendSelectedModel, getSelectedModelError } from "@/lib/chat/config";
 import { getModelConfig } from "@/lib/models";
 import { cn } from "@/lib/utils";
@@ -16,8 +16,11 @@ interface InputChatProps {
   isLoading: boolean;
 }
 
+const MAX_INPUT_HEIGHT = 200;
+
 export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) => {
   const [message, setMessage] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { config } = useConfig();
   const { setSettingsModalOpen } = useUIActions();
@@ -28,6 +31,19 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
   const disabledPlaceholder =
     getSelectedModelError(config) ?? "Configure your model settings to continue";
 
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_INPUT_HEIGHT)}px`;
+    textarea.style.overflowY =
+      textarea.scrollHeight > MAX_INPUT_HEIGHT ? "auto" : "hidden";
+  });
+
   const handleSendMessage = () => {
     if (message.trim()) {
       onSubmit(message);
@@ -35,7 +51,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -48,10 +64,11 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
 
   return (
     <div className="relative flex justify-center w-full px-4">
-      <div className="relative flex items-center w-full max-w-[800px] min-w-0">
-        <Input
+      <div className="relative flex w-full max-w-[800px] min-w-0">
+        <Textarea
+          ref={textareaRef}
           className={cn(
-            "min-h-[56px] w-full rounded-xl py-8 pl-4 text-base backdrop-blur-lg bg-background/50",
+            "min-h-[56px] max-h-[200px] w-full resize-none rounded-xl py-4 pl-4 text-base leading-6 backdrop-blur-lg bg-background/50",
             showReasoningSelector ? "pr-[180px]" : canSend ? "pr-14" : "pr-24"
           )}
           placeholder={canSend ? "Ask anything" : disabledPlaceholder}
@@ -59,9 +76,11 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyPress}
           disabled={isLoading || !canSend}
+          rows={1}
+          wrap="soft"
         />
         {showReasoningSelector ? (
-          <div className="absolute right-14 top-1/2 -translate-y-1/2">
+          <div className="absolute right-14 bottom-2">
             <ReasoningSelector />
           </div>
         ) : null}
@@ -70,7 +89,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
             <Button
               size="icon"
               className={cn(
-                "absolute right-2 h-10 w-10 rounded-lg",
+                "absolute right-2 bottom-2 h-10 w-10 rounded-lg",
                 "hover:opacity-90 transition-opacity"
               )}
               onClick={onStop}
@@ -82,7 +101,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
             <Button
               size="icon"
               className={cn(
-                "absolute right-2 h-10 w-10 rounded-lg",
+                "absolute right-2 bottom-2 h-10 w-10 rounded-lg",
                 "hover:opacity-90 transition-opacity"
               )}
               onClick={handleSendMessage}
@@ -95,7 +114,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
         ) : (
           <Button
             className={cn(
-              "absolute right-2 h-10 px-4 rounded-lg",
+              "absolute right-2 bottom-2 h-10 px-4 rounded-lg",
               "hover:opacity-90 transition-opacity"
             )}
             onClick={handleOpenSettings}
