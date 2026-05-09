@@ -1,7 +1,8 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useResolvedChatConfig } from "@/components/providers/resolved-chat-config-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getAvailableModels, getResolvedSelectedModel } from "@/lib/chat/config";
+import { getResolvedAvailableModels } from "@/lib/chat/config";
 import { MODEL_LABELS } from "@/lib/models";
 import { useConfig } from "@/store";
 import type { ModelType } from "@/store/types";
@@ -18,19 +19,12 @@ import type { ModelType } from "@/store/types";
 export function ModelSelector() {
   const { config, setConfig } = useConfig();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { models, selectedModel } = useResolvedChatConfig();
+  const availableModels = getResolvedAvailableModels(models, config.enabledModels);
 
   const handleModelSelect = (model: ModelType) => {
     setConfig({ selectedModel: model });
   };
-
-  const availableModels = getAvailableModels(config);
-  const displayModel = getResolvedSelectedModel(config);
-
-  useEffect(() => {
-    if (displayModel && displayModel !== config.selectedModel) {
-      setConfig({ selectedModel: displayModel });
-    }
-  }, [config.selectedModel, displayModel, setConfig]);
 
   if ((config.enabledModels || []).length === 0) {
     return (
@@ -40,7 +34,7 @@ export function ModelSelector() {
     );
   }
 
-  if (!displayModel || availableModels.length === 0) {
+  if (!selectedModel || availableModels.length === 0) {
     return (
       <Button variant="ghost" className="text-muted-foreground cursor-not-allowed">
         No model selected
@@ -48,7 +42,7 @@ export function ModelSelector() {
     );
   }
 
-  const currentModelInfo = MODEL_LABELS[displayModel];
+  const currentModelInfo = MODEL_LABELS[selectedModel];
 
   return (
     <DropdownMenu onOpenChange={setIsDropdownOpen}>
@@ -68,7 +62,7 @@ export function ModelSelector() {
       <DropdownMenuContent align="start" className="min-w-[200px]">
         {availableModels.map((model) => {
           const modelInfo = MODEL_LABELS[model];
-          const isSelected = model === displayModel;
+          const isSelected = model === selectedModel;
           return (
             <DropdownMenuItem
               key={model}

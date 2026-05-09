@@ -4,7 +4,9 @@ export type ReasoningLevel = (typeof REASONING_LEVELS)[number];
 
 export type ModelProvider = "OpenAI" | "Anthropic" | "Google" | "Local";
 
-export type ApiKeyType = "openAIKey" | "anthropicKey" | "googleKey";
+export const API_KEY_TYPES = ["openAIKey", "anthropicKey", "googleKey"] as const;
+
+export type ApiKeyType = (typeof API_KEY_TYPES)[number];
 
 export interface ModelReasoning {
   configurable: boolean;

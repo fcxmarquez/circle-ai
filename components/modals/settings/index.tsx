@@ -1,14 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Cpu, Eye, EyeOff, KeyRound, LogOut, Settings2, SunMoon, X } from "lucide-react";
+import { Cpu, KeyRound, LogOut, Settings2, SunMoon } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";
-import { useState } from "react";
-import type { Control } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { ApiKeyField } from "@/components/modals/settings/ApiKeyField";
+import { useResolvedChatConfig } from "@/components/providers/resolved-chat-config-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +27,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import {
   MultipleCombobox,
   type MultipleComboboxOption,
@@ -40,11 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import {
-  getAvailableModels,
-  getConfigIssues,
-  hasRequiredKeyForModel,
-} from "@/lib/chat/config";
+import { getResolvedAvailableModels, resolveChatConfig } from "@/lib/chat/config";
 import {
   DEFAULT_ENABLED_MODELS,
   DEFAULT_MODEL,
@@ -56,8 +51,6 @@ import { useConfig, useUserActions } from "@/store";
 import type { ModelType } from "@/store/types";
 import { createClient } from "@/utils/supabase/client";
 
-type ApiKeyFieldName = "openAIKey" | "anthropicKey" | "googleKey";
-
 type SettingsFormValues = {
   openAIKey?: string;
   anthropicKey?: string;
@@ -65,67 +58,6 @@ type SettingsFormValues = {
   selectedModel: string;
   enabledModels: string[];
 };
-
-function ApiKeyField({
-  name,
-  label,
-  placeholder,
-  control,
-}: {
-  name: ApiKeyFieldName;
-  label: string;
-  placeholder: string;
-  control: Control<SettingsFormValues>;
-}) {
-  const [show, setShow] = useState(false);
-  return (
-    <FormField
-      control={control}
-      name={name}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <div className="relative">
-              <Input
-                {...field}
-                type={show ? "text" : "password"}
-                placeholder={placeholder}
-                className={field.value ? "pr-20" : "pr-10"}
-                autoComplete="off"
-              />
-              <div className="absolute right-0 top-0 h-full flex items-center">
-                {field.value ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-full px-2 hover:bg-transparent"
-                    aria-label={`Clear ${label}`}
-                    onClick={() => field.onChange("")}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-full px-3 hover:bg-transparent"
-                  aria-label={show ? `Hide ${label}` : `Show ${label}`}
-                  onClick={() => setShow((s) => !s)}
-                >
-                  {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-}
 
 interface SettingsModalProps {
   open: boolean;
@@ -147,6 +79,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const { config, setConfig } = useConfig();
   const { setLogout } = useUserActions();
   const { theme = "system", setTheme } = useTheme();
+  const { envProvidersStatus } = useResolvedChatConfig();
 
   const form = useForm<z.infer<typeof settingsFormSchema>>({
     resolver: zodResolver(settingsFormSchema),
@@ -172,12 +105,13 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   // eslint-disable-next-line react-hooks/incompatible-library
   const watchedValues = form.watch();
 
-  const availableEnabledModels = getAvailableModels({
-    enabledModels: watchedValues.enabledModels,
-    openAIKey: watchedValues.openAIKey,
-    anthropicKey: watchedValues.anthropicKey,
-    googleKey: watchedValues.googleKey,
-  });
+  const resolveDraftConfig = (values: SettingsFormValues) =>
+    resolveChatConfig(values, envProvidersStatus);
+  const draftResolvedConfig = resolveDraftConfig(watchedValues);
+  const availableEnabledModels = getResolvedAvailableModels(
+    draftResolvedConfig.models,
+    watchedValues.enabledModels
+  );
 
   React.useEffect(() => {
     if (
@@ -206,7 +140,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   };
 
   const onSubmit = (data: z.infer<typeof settingsFormSchema>) => {
-    const issues = getConfigIssues(data);
+    const issues = resolveDraftConfig(data).issues;
 
     const enabledModels =
       issues.enabledModelsMissingKeys.length > 0
@@ -237,16 +171,11 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
   // Prepare options for the multiple combobox
   const modelOptions: MultipleComboboxOption[] = MODEL_OPTIONS.map((option) => {
-    const hasRequiredKey = hasRequiredKeyForModel(option.value, {
-      openAIKey: watchedValues.openAIKey,
-      anthropicKey: watchedValues.anthropicKey,
-      googleKey: watchedValues.googleKey,
-    });
     return {
       value: option.value,
       label: option.label,
       badge: option.provider,
-      disabled: !hasRequiredKey,
+      disabled: !draftResolvedConfig.models[option.value].hasRequiredKey,
     };
   });
 
@@ -386,22 +315,25 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                 in your browser.
               </p>
               <ApiKeyField
-                control={form.control as Control<SettingsFormValues>}
-                name="openAIKey"
-                label="OpenAI API Key"
+                control={form.control}
                 placeholder="sk-..."
+                label="OpenAI API Key"
+                name="openAIKey"
+                envSet={envProvidersStatus.openAIKey}
               />
               <ApiKeyField
-                control={form.control as Control<SettingsFormValues>}
-                name="anthropicKey"
-                label="Anthropic API Key"
+                control={form.control}
                 placeholder="sk-ant-..."
+                label="Anthropic API Key"
+                name="anthropicKey"
+                envSet={envProvidersStatus.anthropicKey}
               />
               <ApiKeyField
-                control={form.control as Control<SettingsFormValues>}
-                name="googleKey"
-                label="Google API Key"
+                control={form.control}
                 placeholder="AIza..."
+                label="Google API Key"
+                name="googleKey"
+                envSet={envProvidersStatus.googleKey}
               />
               <div>
                 <Button type="submit" className="w-full">

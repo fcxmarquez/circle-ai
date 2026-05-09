@@ -8,6 +8,7 @@ import { useState } from "react";
 // import { useEffect } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
+import { ResolvedChatConfigProvider } from "@/components/providers/resolved-chat-config-provider";
 // TEMP: Disabled for rebuild - FCX-30
 // import { hasActiveSession, getUser } from "@/utils/supabase/session";
 // import { useUserActions } from "@/store";
@@ -55,7 +56,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <ResolvedChatConfigProvider>{children}</ResolvedChatConfigProvider>
           <ReactQueryDevtools initialIsOpen={false} />
         </ThemeProvider>
       </QueryClientProvider>

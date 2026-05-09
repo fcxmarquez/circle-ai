@@ -1,13 +1,13 @@
 "use client";
 
 import { Send, Square } from "lucide-react";
-import { type FC, useLayoutEffect, useRef, useState } from "react";
+import { type FC, type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
+import { useResolvedChatConfig } from "@/components/providers/resolved-chat-config-provider";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { canSendSelectedModel, getSelectedModelError } from "@/lib/chat/config";
 import { getModelConfig } from "@/lib/models";
 import { cn } from "@/lib/utils";
-import { useConfig, useUIActions } from "@/store";
+import { useUIActions } from "@/store";
 import { ReasoningSelector } from "./ReasoningSelector";
 
 interface InputChatProps {
@@ -22,11 +22,10 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { config } = useConfig();
   const { setSettingsModalOpen } = useUIActions();
-  const canSend = canSendSelectedModel(config);
+  const { canSend, selectedModel, selectedModelError } = useResolvedChatConfig();
   const showReasoningSelector = Boolean(
-    canSend && getModelConfig(config.selectedModel)?.reasoning.configurable
+    canSend && selectedModel && getModelConfig(selectedModel)?.reasoning.configurable
   );
   const inputPaddingClass = showReasoningSelector
     ? "pr-[180px]"
@@ -34,7 +33,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
       ? "pr-14"
       : "pr-24";
   const disabledPlaceholder =
-    getSelectedModelError(config) ?? "Configure your model settings to continue";
+    selectedModelError ?? "Configure your model settings to continue";
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -60,7 +59,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyPress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing) {
       return;
     }
