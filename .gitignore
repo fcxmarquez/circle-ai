@@ -43,3 +43,7 @@ ai/
 .env
 .envrc
 *storybook.log
+
+# build artifacts
+storybook-static/
+.playwright-mcp/
