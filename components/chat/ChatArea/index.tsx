@@ -10,20 +10,19 @@ import { Thread } from "@/components/chat/Thread";
 // import { ModalLogin } from "@/components/Modals/ChakraModals/Login";
 import { InputChat } from "@/components/Inputs/InputChat";
 import { LocalModelConsentDialog } from "@/components/modals/local-model-consent";
+import { useResolvedChatConfig } from "@/components/providers/resolved-chat-config-provider";
 import { colors } from "@/constants/systemDesign/colors";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { useCircleChat } from "@/hooks/useCircleChat";
 import { useLocalModelConsent } from "@/hooks/useLocalModelConsent";
-import { canSendSelectedModel, getSelectedModelError } from "@/lib/chat/config";
 import { isLocalModel } from "@/lib/models";
-import { useConfig, useUIActions } from "@/store";
+import { useUIActions } from "@/store";
 
 export const ChatArea = () => {
   // const { setSettingsModalOpen } = useUIActions();
   const [isMounted, setIsMounted] = useState(false);
   const { setSettingsModalOpen } = useUIActions();
-  const { config } = useConfig();
-  const canSend = canSendSelectedModel(config);
+  const { canSend, selectedModel, selectedModelError } = useResolvedChatConfig();
   const {
     sendMessage,
     stopGeneration,
@@ -98,14 +97,13 @@ export const ChatArea = () => {
 
     if (!canSend) {
       toast.warning(
-        getSelectedModelError(config) ??
-          "Please configure your chat settings to continue."
+        selectedModelError ?? "Please configure your chat settings to continue."
       );
       setSettingsModalOpen(true);
       return;
     }
 
-    if (isLocalModel(config.selectedModel)) {
+    if (selectedModel && isLocalModel(selectedModel)) {
       const spec = await consent.requestConsent();
       if (!spec) return;
       sendMessage(message, spec);

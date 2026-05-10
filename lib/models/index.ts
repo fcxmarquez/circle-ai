@@ -17,7 +17,7 @@ export type {
   ReasoningFields,
   ReasoningLevel,
 } from "./types";
-export { REASONING_LEVELS } from "./types";
+export { API_KEY_TYPES, REASONING_LEVELS } from "./types";
 
 export const MODEL_OPTIONS = [
   ...LOCAL_MODELS,

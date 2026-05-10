@@ -1,7 +1,52 @@
 import type { Preview } from "@storybook/react";
 import "../app/globals.css";
 
+type StorybookTheme = "light" | "dark" | "system";
+
+function getResolvedTheme(theme: StorybookTheme): "light" | "dark" {
+  if (theme !== "system") {
+    return theme;
+  }
+
+  if (globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+
+  return "light";
+}
+
 const preview: Preview = {
+  globalTypes: {
+    theme: {
+      description: "Global theme for components",
+      toolbar: {
+        title: "Theme",
+        icon: "circlehollow",
+        items: [
+          { value: "light", title: "Light" },
+          { value: "dark", title: "Dark" },
+          { value: "system", title: "System" },
+        ],
+        dynamicTitle: true,
+      },
+    },
+  },
+  initialGlobals: {
+    theme: "light",
+  },
+  decorators: [
+    (Story, context) => {
+      const theme = (context.globals.theme ?? "light") as StorybookTheme;
+      const resolvedTheme = getResolvedTheme(theme);
+      const isDark = resolvedTheme === "dark";
+
+      document.documentElement.classList.toggle("dark", isDark);
+      document.body.classList.toggle("dark", isDark);
+      document.body.style.colorScheme = resolvedTheme;
+
+      return Story();
+    },
+  ],
   parameters: {
     controls: {
       matchers: {

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getSelectedModelError } from "@/lib/chat/config";
 import { ChatStreamRequestSchema } from "@/lib/chat/contracts";
+import { applyEnvApiKeys } from "@/lib/chat/serverEnv";
 import { streamChatResponse } from "@/lib/langchain/chatService";
 import { isLocalModel } from "@/lib/models";
 
@@ -28,7 +29,10 @@ export async function POST(req: NextRequest) {
       400
     );
   }
-  const selectedModelError = getSelectedModelError(request.config);
+
+  const config = applyEnvApiKeys(request.config);
+
+  const selectedModelError = getSelectedModelError(config);
   if (selectedModelError) {
     return jsonError(selectedModelError, 400);
   }
@@ -36,6 +40,7 @@ export async function POST(req: NextRequest) {
   try {
     const stream = streamChatResponse({
       ...request,
+      config,
       signal: req.signal,
     });
 
