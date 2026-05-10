@@ -4,7 +4,7 @@ import { EnvProvidersStatusErrorAlert } from "@/components/providers/EnvProvider
 import { Button } from "@/components/ui/button";
 
 const meta: Meta<typeof EnvProvidersStatusErrorAlert> = {
-  title: "components/providers/ResolvedChatConfigProvider/ErrorAlert",
+  title: "components/views/providers/ResolvedChatConfigProvider/ErrorAlert",
   component: EnvProvidersStatusErrorAlert,
   parameters: {
     layout: "fullscreen",
