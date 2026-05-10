@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  BrainCircuit,
-  Check,
-  ChevronDown,
-  type LucideIcon,
-  Signal,
-  SignalHigh,
-  SignalLow,
-  SignalMedium,
-  SignalZero,
-} from "lucide-react";
+import { Check, ChevronDown, Lightbulb } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,14 +20,6 @@ const LEVEL_LABELS: Record<ReasoningLevel, string> = {
   medium: "Medium",
   high: "High",
   max: "Max",
-};
-
-const LEVEL_ICONS: Record<ReasoningLevel, LucideIcon> = {
-  none: SignalZero,
-  low: SignalLow,
-  medium: SignalMedium,
-  high: SignalHigh,
-  max: Signal,
 };
 
 export function ReasoningSelector() {
@@ -61,7 +43,6 @@ export function ReasoningSelector() {
   const selectedLevel = levels.includes(config.reasoningLevel)
     ? config.reasoningLevel
     : modelConfig.reasoning.defaultLevel;
-  const SelectedSignalIcon = LEVEL_ICONS[selectedLevel];
 
   const handleSelect = (level: ReasoningLevel) => {
     setConfig({ reasoningLevel: level });
@@ -80,9 +61,8 @@ export function ReasoningSelector() {
           )}
           aria-label={`Reasoning: ${LEVEL_LABELS[selectedLevel]}`}
         >
-          <BrainCircuit className="h-4 w-4" />
+          <Lightbulb className="h-4 w-4" />
           <span>{LEVEL_LABELS[selectedLevel]}</span>
-          <SelectedSignalIcon className="h-4 w-4 text-muted-foreground" />
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
@@ -91,7 +71,6 @@ export function ReasoningSelector() {
           REASONING
         </DropdownMenuLabel>
         {levels.map((level) => {
-          const SignalIcon = LEVEL_ICONS[level];
           const isSelected = level === selectedLevel;
 
           return (
@@ -100,10 +79,7 @@ export function ReasoningSelector() {
               onSelect={() => handleSelect(level)}
               className={cn("justify-between", isSelected && "bg-accent")}
             >
-              <span className="flex items-center gap-2">
-                <SignalIcon className="h-4 w-4" />
-                {LEVEL_LABELS[level]}
-              </span>
+              {LEVEL_LABELS[level]}
               <Check
                 className={cn("h-4 w-4", isSelected ? "opacity-100" : "opacity-0")}
               />
