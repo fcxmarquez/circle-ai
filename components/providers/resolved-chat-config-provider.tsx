@@ -1,9 +1,17 @@
 "use client";
 
-import { createContext, type ReactNode, useContext, useEffect, useMemo } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useEnvProvidersStatusQuery } from "@/fetch/providers/queries";
 import { type ResolvedChatConfig, resolveChatConfig } from "@/lib/chat/config";
 import { useConfig } from "@/store";
+import { EnvProvidersStatusErrorAlert } from "./EnvProvidersStatusErrorAlert";
 
 type ResolvedChatConfigContextValue = ResolvedChatConfig & {
   envStatusReady: boolean;
@@ -16,7 +24,8 @@ const ResolvedChatConfigContext = createContext<ResolvedChatConfigContextValue |
 export function ResolvedChatConfigProvider({ children }: { children: ReactNode }) {
   const { config, setConfig } = useConfig();
   const envProvidersQuery = useEnvProvidersStatusQuery();
-  const envStatusReady = !envProvidersQuery.isPending;
+  const envStatusReady = envProvidersQuery.isSuccess;
+  const [isProviderErrorDismissed, setProviderErrorDismissed] = useState(false);
 
   const resolvedConfig = useMemo(
     () => resolveChatConfig(config, envProvidersQuery.data),
@@ -24,12 +33,23 @@ export function ResolvedChatConfigProvider({ children }: { children: ReactNode }
   );
 
   useEffect(() => {
-    if (!envStatusReady) return;
+    if (!envProvidersQuery.isSuccess) return;
     if (!resolvedConfig.selectedModel) return;
     if (resolvedConfig.selectedModel === config.selectedModel) return;
 
     setConfig({ selectedModel: resolvedConfig.selectedModel });
-  }, [config.selectedModel, envStatusReady, resolvedConfig.selectedModel, setConfig]);
+  }, [
+    config.selectedModel,
+    envProvidersQuery.isSuccess,
+    resolvedConfig.selectedModel,
+    setConfig,
+  ]);
+
+  useEffect(() => {
+    if (!envProvidersQuery.isError) {
+      setProviderErrorDismissed(false);
+    }
+  }, [envProvidersQuery.isError]);
 
   const value = useMemo(
     () => ({
@@ -42,6 +62,15 @@ export function ResolvedChatConfigProvider({ children }: { children: ReactNode }
   return (
     <ResolvedChatConfigContext.Provider value={value}>
       {children}
+      {envProvidersQuery.isError && !isProviderErrorDismissed ? (
+        <EnvProvidersStatusErrorAlert
+          isRetrying={envProvidersQuery.isFetching}
+          onDismiss={() => setProviderErrorDismissed(true)}
+          onRetry={() => {
+            void envProvidersQuery.refetch();
+          }}
+        />
+      ) : null}
     </ResolvedChatConfigContext.Provider>
   );
 }

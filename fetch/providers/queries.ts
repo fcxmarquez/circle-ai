@@ -13,10 +13,12 @@ export function useEnvProvidersStatusQuery() {
   return useQuery({
     queryKey: ["env-providers-status"],
     queryFn: fetchEnvProvidersStatus,
-    staleTime: Number.POSITIVE_INFINITY,
-    gcTime: Number.POSITIVE_INFINITY,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
+    refetchOnReconnect: true,
+    refetchOnMount: true,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10_000),
   });
 }

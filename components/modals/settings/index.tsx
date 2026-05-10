@@ -175,7 +175,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       value: option.value,
       label: option.label,
       badge: option.provider,
-      disabled: !draftResolvedConfig.models[option.value].hasRequiredKey,
+      disabled: !draftResolvedConfig.models[option.value].available,
     };
   });
 

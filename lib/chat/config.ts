@@ -65,11 +65,10 @@ function getApiKeySource(envSet: boolean, userSet: boolean): ApiKeySource {
 function normalizeEnvProvidersStatus(
   envStatus?: EnvProvidersStatus
 ): NormalizedEnvProvidersStatus {
-  return {
-    openAIKey: Boolean(envStatus?.openAIKey),
-    anthropicKey: Boolean(envStatus?.anthropicKey),
-    googleKey: Boolean(envStatus?.googleKey),
-  };
+  return API_KEY_TYPES.reduce((acc, key) => {
+    acc[key] = Boolean(envStatus?.[key]);
+    return acc;
+  }, {} as NormalizedEnvProvidersStatus);
 }
 
 function getProviderKeysStatus(
@@ -124,7 +123,7 @@ export function getResolvedAvailableModels(
 }
 
 function isSupportedApiKey(key: ApiKeyType | null): key is ApiKeyType {
-  return key === "openAIKey" || key === "anthropicKey" || key === "googleKey";
+  return key !== null && API_KEY_TYPES.includes(key);
 }
 
 function hasResolvedKey(
@@ -140,11 +139,7 @@ export function hasAnyApiKey(
   config: ChatApiKeys,
   envStatus?: EnvProvidersStatus
 ): boolean {
-  return (
-    hasResolvedKey(config, "openAIKey", envStatus) ||
-    hasResolvedKey(config, "anthropicKey", envStatus) ||
-    hasResolvedKey(config, "googleKey", envStatus)
-  );
+  return API_KEY_TYPES.some((key) => hasResolvedKey(config, key, envStatus));
 }
 
 function hasRequiredKeyForModel(
