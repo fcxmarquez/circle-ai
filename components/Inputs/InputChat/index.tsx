@@ -28,10 +28,10 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
     canSend && selectedModel && getModelConfig(selectedModel)?.reasoning.configurable
   );
   const inputPaddingClass = showReasoningSelector
-    ? "pr-[180px]"
+    ? "pr-[160px]"
     : canSend
-      ? "pr-14"
-      : "pr-24";
+      ? "pr-20"
+      : "pr-32";
   const disabledPlaceholder =
     selectedModelError ?? "Configure your model settings to continue";
 
@@ -80,7 +80,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
         <Textarea
           ref={textareaRef}
           className={cn(
-            "min-h-[56px] max-h-[200px] w-full resize-none rounded-xl py-4 pl-4 text-base leading-6 backdrop-blur-lg bg-background/50",
+            "chat-scrollbar min-h-[56px] max-h-[200px] w-full resize-none rounded-xl py-4 pl-4 text-base leading-6 backdrop-blur-lg bg-background/50",
             inputPaddingClass
           )}
           placeholder={canSend ? "Ask anything" : disabledPlaceholder}
@@ -101,7 +101,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
             <Button
               size="icon"
               className={cn(
-                "absolute right-2 bottom-2 h-10 w-10 rounded-lg",
+                "absolute right-6 bottom-2 h-10 w-10 rounded-full",
                 "hover:opacity-90 transition-opacity"
               )}
               onClick={onStop}
@@ -113,7 +113,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
             <Button
               size="icon"
               className={cn(
-                "absolute right-2 bottom-2 h-10 w-10 rounded-lg",
+                "absolute right-2 bottom-2 h-10 w-10 rounded-full",
                 "hover:opacity-90 transition-opacity"
               )}
               onClick={handleSendMessage}
