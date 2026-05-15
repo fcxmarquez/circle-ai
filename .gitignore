@@ -38,6 +38,8 @@ next-env.d.ts
 mynotes.md
 ai/
 .codex/
+.ignore/*
+!.ignore/.gitkeep
 
 # environment
 .env
