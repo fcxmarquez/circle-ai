@@ -26,13 +26,18 @@ export const useStore = create<StoreState>()(
       }),
       {
         name: "chat-store",
-        version: 7,
+        version: 8,
         storage: dedupedJSONStorage,
         migrate: (persistedState, version) => {
           const state = persistedState as
             | {
                 config?: Partial<Config>;
-                chat?: { conversations?: { isTitleLoading?: boolean }[] };
+                chat?: {
+                  conversations?: {
+                    isTitleLoading?: boolean;
+                    messages?: { role: string; status: string; content: string }[];
+                  }[];
+                };
               }
             | undefined;
           if (version < 2 && state?.config && state.config.reasoningLevel === undefined) {
@@ -77,6 +82,19 @@ export const useStore = create<StoreState>()(
               if (conv.isTitleLoading) {
                 conv.isTitleLoading = false;
               }
+            }
+          }
+          if (version < 8 && Array.isArray(state?.chat?.conversations)) {
+            for (const conv of state.chat.conversations) {
+              if (!Array.isArray(conv.messages)) continue;
+              conv.messages = conv.messages.filter(
+                (msg) =>
+                  !(
+                    msg.role === "assistant" &&
+                    msg.status === "pending" &&
+                    !msg.content.trim()
+                  )
+              );
             }
           }
           return state as PersistedSlice;
