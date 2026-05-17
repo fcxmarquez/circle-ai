@@ -26,10 +26,15 @@ export const useStore = create<StoreState>()(
       }),
       {
         name: "chat-store",
-        version: 6,
+        version: 7,
         storage: dedupedJSONStorage,
         migrate: (persistedState, version) => {
-          const state = persistedState as { config?: Partial<Config> } | undefined;
+          const state = persistedState as
+            | {
+                config?: Partial<Config>;
+                chat?: { conversations?: { isTitleLoading?: boolean }[] };
+              }
+            | undefined;
           if (version < 2 && state?.config && state.config.reasoningLevel === undefined) {
             const model = state.config.selectedModel ?? DEFAULT_MODEL;
             state.config.reasoningLevel =
@@ -66,6 +71,13 @@ export const useStore = create<StoreState>()(
           }
           if (version < 6) {
             // Message thinking is optional, so existing persisted chats need no backfill.
+          }
+          if (version < 7 && Array.isArray(state?.chat?.conversations)) {
+            for (const conv of state.chat.conversations) {
+              if (conv.isTitleLoading) {
+                conv.isTitleLoading = false;
+              }
+            }
           }
           return state as PersistedSlice;
         },
@@ -121,6 +133,7 @@ export const useChatActions = () => {
   const createNewConversation = useStore((state) => state.createNewConversation);
   const setCurrentConversation = useStore((state) => state.setCurrentConversation);
   const updateConversationTitle = useStore((state) => state.updateConversationTitle);
+  const setAutoConversationTitle = useStore((state) => state.setAutoConversationTitle);
   const deleteConversation = useStore((state) => state.deleteConversation);
   const deleteMessage = useStore((state) => state.deleteMessage);
   const setMessageContent = useStore((state) => state.setMessageContent);
@@ -137,6 +150,7 @@ export const useChatActions = () => {
     createNewConversation,
     setCurrentConversation,
     updateConversationTitle,
+    setAutoConversationTitle,
     deleteConversation,
     deleteMessage,
     setMessageContent,

@@ -36,6 +36,7 @@ export function groupAndSortChats(
     title: string;
     url: string;
     date: string;
+    isTitleLoading?: boolean;
   }[]
 ) {
   const groupedChats = chats.reduce(

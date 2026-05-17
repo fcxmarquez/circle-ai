@@ -41,6 +41,7 @@ export function NavChatHistory({
     title: string;
     url: string;
     date: string;
+    isTitleLoading?: boolean;
   }[];
 }) {
   const sortedGroupEntries = groupAndSortChats(chats);
@@ -180,7 +181,13 @@ export function NavChatHistory({
                               onClick={() => handleConversationClick(chat.id)}
                               className="truncate flex-1 cursor-pointer text-left"
                             >
-                              {chat.title}
+                              {chat.isTitleLoading ? (
+                                <span className="animate-pulse tracking-widest text-muted-foreground">
+                                  ···
+                                </span>
+                              ) : (
+                                chat.title
+                              )}
                             </button>
                           )}
 

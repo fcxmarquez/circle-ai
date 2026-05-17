@@ -101,7 +101,7 @@ export const InputChat: FC<InputChatProps> = ({ onSubmit, onStop, isLoading }) =
             <Button
               size="icon"
               className={cn(
-                "absolute right-6 bottom-2 h-10 w-10 rounded-full",
+                "absolute right-2 bottom-2 h-10 w-10 rounded-full",
                 "hover:opacity-90 transition-opacity"
               )}
               onClick={onStop}

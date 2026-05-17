@@ -37,6 +37,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     title: conversation.title,
     url: `/c/${conversation.id}`,
     date: new Date(conversation.lastModified).toISOString(),
+    isTitleLoading: conversation.isTitleLoading ?? false,
   }));
 
   const data = {
