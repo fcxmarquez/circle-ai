@@ -306,18 +306,24 @@ export const useCircleChat = () => {
       } else {
         const capturedConfig: ChatModelConfig = { ...requestConfig };
 
+        const titleAbort = new AbortController();
+        const titleTimeout = setTimeout(() => titleAbort.abort(), 10_000);
+
         fetch("/api/generate-title", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: trimmedMessage, config: capturedConfig }),
+          signal: titleAbort.signal,
         })
           .then((res) => (res.ok ? res.json() : null))
           .then((data: { title?: string } | null) => {
-            setAutoConversationTitle(capturedId, data?.title ?? fallbackTitle);
+            const aiTitle = data?.title?.trim();
+            setAutoConversationTitle(capturedId, aiTitle || fallbackTitle);
           })
           .catch(() => {
             setAutoConversationTitle(capturedId, fallbackTitle);
-          });
+          })
+          .finally(() => clearTimeout(titleTimeout));
       }
     }
 
