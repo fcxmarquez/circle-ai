@@ -86,6 +86,7 @@ export const useCircleChat = () => {
     setMessageContent,
     deleteMessage,
     setPendingRequest,
+    setAutoConversationTitle,
   } = useChatActions();
   const { startStreaming, endStreaming } = useStreamingActions();
   const { accumulateChunk, flushImmediately, discardPending } = useManageChunks();
@@ -294,6 +295,37 @@ export const useCircleChat = () => {
     const conversationId = isNewConversation
       ? createNewConversation(trimmedMessage)
       : currentConversationId;
+
+    if (isNewConversation) {
+      const capturedId = conversationId;
+      const fallbackTitle =
+        trimmedMessage.length > 30 ? `${trimmedMessage.slice(0, 30)}...` : trimmedMessage;
+
+      if (useLocal) {
+        setAutoConversationTitle(capturedId, fallbackTitle);
+      } else {
+        const capturedConfig: ChatModelConfig = { ...requestConfig };
+
+        const titleAbort = new AbortController();
+        const titleTimeout = setTimeout(() => titleAbort.abort(), 10_000);
+
+        fetch("/api/generate-title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: trimmedMessage, config: capturedConfig }),
+          signal: titleAbort.signal,
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: { title?: string } | null) => {
+            const aiTitle = data?.title?.trim();
+            setAutoConversationTitle(capturedId, aiTitle || fallbackTitle);
+          })
+          .catch(() => {
+            setAutoConversationTitle(capturedId, fallbackTitle);
+          })
+          .finally(() => clearTimeout(titleTimeout));
+      }
+    }
 
     addMessage({
       content: trimmedMessage,

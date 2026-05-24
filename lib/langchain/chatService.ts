@@ -92,6 +92,38 @@ function convertToLangChainMessages(history: ChatMessage[]) {
   );
 }
 
+export async function generateConversationTitle(
+  message: string,
+  config: ChatModelConfig
+): Promise<string> {
+  const { llm } = await buildChatModel({
+    ...config,
+    reasoningLevel: "none",
+    temperature: 0.3,
+  });
+
+  const result = await llm.invoke([
+    new SystemMessage(
+      "You generate brief conversation titles. Reply with only the title — no quotes, no trailing punctuation."
+    ),
+    new HumanMessage(
+      `Generate a title of 3–7 words for a conversation starting with this message:\n\n${message}`
+    ),
+  ]);
+
+  const raw = result.contentBlocks
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+
+  return raw
+    .trim()
+    .replace(/^["']+|["']+$/g, "")
+    .replace(/[.!?]+$/, "")
+    .trim()
+    .slice(0, 80);
+}
+
 export async function* streamChatResponse({
   message,
   history = [],
