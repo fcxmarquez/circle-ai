@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Circle
 
 Circle is an open-source AI chat client built for power users who want full control over their AI experience. It runs as a Next.js web application that you can self-host on your own infrastructure, connecting directly to the AI providers of your choice using your own API keys — no intermediary, no markup, no lock-in.
