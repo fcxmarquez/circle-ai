@@ -1,91 +1,104 @@
 # Circle
 
-## Database Setup
+Circle is an open-source AI chat client built for power users who want full control over their AI experience. It runs as a Next.js web application that you can self-host on your own infrastructure, connecting directly to the AI providers of your choice using your own API keys — no intermediary, no markup, no lock-in.
 
-This project uses Supabase with Drizzle ORM for database management.
+---
 
-### Initial Setup
+## ✨ Current Features
 
-1. **Run Drizzle Migrations**
+### 🤖 Multi-Provider Model Support
 
-   ```bash
-   npx drizzle-kit push
-   ```
+Circle connects to multiple AI providers through a unified interface:
 
-2. **Set up Supabase Auth Trigger (Manual Setup Required)**
+- **Anthropic** — Claude models via the Anthropic API
+- **OpenAI** — GPT models via the OpenAI API
+- **Google** — Gemini and Gemma models via the Google API
+- **Local (in-browser)** — runs models directly in your browser via WebGPU/WASM with no API key required; auto-selects a model tier based on your hardware
 
-   After running the migrations, you need to manually set up a database trigger in the Supabase dashboard to automatically create user records when someone signs up.
+### 🧠 Configurable Reasoning
 
-   **Steps:**
-   1. Go to your Supabase Dashboard
-   2. Navigate to Database → Functions
-   3. Create a new function named `handle_new_user` with this code:
+For models that support extended thinking (Claude, GPT, Gemini), you can set the reasoning depth per message: none, low, medium, high, or max. The interface adapts the available levels to each model's capabilities.
 
-   ```sql
-   CREATE OR REPLACE FUNCTION public.handle_new_user()
-   RETURNS TRIGGER AS $$
-   BEGIN
-     INSERT INTO public.users (id, email, created_at)
-     VALUES (NEW.id, NEW.email, NOW());
-     RETURN NEW;
-   EXCEPTION
-     WHEN unique_violation THEN
-       -- User already exists, just return NEW
-       RETURN NEW;
-     WHEN OTHERS THEN
-       -- Log the error and still return NEW to not break auth
-       RAISE LOG 'Error in handle_new_user: %', SQLERRM;
-       RETURN NEW;
-   END;
-   $$ LANGUAGE plpgsql SECURITY DEFINER;
-   ```
+### ⚡ Streaming Chat
 
-   4. Navigate to Database → Triggers
-   5. Create a new trigger:
-      - **Name**: `on_auth_user_created`
-      - **Table**: `auth.users`
-      - **Events**: `INSERT`
-      - **Type**: `AFTER`
-      - **Orientation**: `ROW`
-      - **Function**: `handle_new_user`
+Responses stream token by token with a stop button to interrupt generation at any point.
 
-   6. Set up Row Level Security policies:
+### 💬 Conversation Management
 
-   ```sql
-   -- Enable RLS
-   ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+- Conversations are listed in a collapsible sidebar
+- New chats automatically receive an AI-generated title after the first exchange
+- State is persisted to localStorage so your history survives page reloads
 
-   -- Allow service role to insert (for the trigger)
-   CREATE POLICY "Enable insert for service role" ON public.users
-     FOR INSERT WITH CHECK (true);
+### ⌨️ Keyboard-First UX
 
-   -- Allow users to read their own data
-   CREATE POLICY "Users can view own profile" ON public.users
-     FOR SELECT USING (auth.uid() = id);
+Global keyboard shortcuts for common actions, a model selector in the header, and a responsive layout that works on both desktop and mobile.
 
-   -- Allow users to update their own data
-   CREATE POLICY "Users can update own profile" ON public.users
-     FOR UPDATE USING (auth.uid() = id);
-   ```
+### 💾 Local-First Storage
 
-   **Why this is needed:** When users sign up via OAuth (Google), Supabase creates a record in `auth.users` but we need a corresponding record in our `public.users` table for our application logic.
+Conversations and configuration are persisted to localStorage, so your history and API keys survive page reloads without requiring an account or backend. Backend storage is in development.
 
-### Environment Variables
+---
 
-Make sure to set up your `.env.local` file with:
+## 🗺️ Roadmap
 
+### Near Term
+
+- 🪙 **Token tracking** — display input/output token counts and estimated cost per conversation to make API spend visible
+- 🛑 **Spend limits** — configurable hard caps per provider to prevent runaway charges
+- 🔀 **OpenRouter support** — a single API key to access hundreds of models from multiple providers
+
+### Core Platform
+
+- 🗄️ **Persistent backend** — full server-side storage for chat history and user configuration, replacing the current localStorage approach, to support multiple devices and sessions
+- 🔐 **OAuth system** — a complete auth overhaul enabling sign-in with Google and other providers, with proper session management
+
+### Organization & Customization
+
+- 📁 **Project system** — group conversations into projects with per-project custom instructions and attached files, so you can maintain separate contexts for work, research, or personal use
+- 🖼️ **Multimedia upload** — attach images, documents, and other files directly to messages
+
+### Extended Capabilities
+
+- 🌐 **Web search** — real-time web access via Exa MCP, injected into the context before the model responds
+- 🔌 **MCP support** — connect any Model Context Protocol server to extend what the model can see and do
+- 🐧 **Agent sandbox** — a small Linux environment (filesystem, shell) the model can use as an action space for multi-step tasks
+- 🗣️ **Multi-agent debate** — route complex queries through multiple model instances that challenge and refine each other's answers before surfacing a response, inspired by Grok's debate architecture
+- 🔬 **Deep research** — an autonomous research pipeline that decomposes a question, searches iteratively, and synthesizes a structured report
+
+---
+
+## 🚀 Self-Hosting
+
+### Prerequisites
+
+- Node.js 18+ or Bun
+- API keys for whichever providers you want to use (not required if using local in-browser models)
+
+### Setup
+
+```bash
+git clone https://github.com/fcxmarquez/circle-ai.git
+cd circle-ai
+bun install
+bun dev
 ```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-DATABASE_URL=your_database_url
-```
 
-## About
+Open the app, go to settings, and enter your API keys. Everything is stored locally in your browser — no account or backend required.
 
-This is a ChatGPT like app and aims to provide a better user experience among another exclusive features. Also it challenge to connect with different open and closed AI models, from OpenAI or Anthropic, to models running locally like Ollama.
+---
 
-## Planned features
+## 🛠️ Tech Stack
 
-Working on it.
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **AI**: LangChain (OpenAI + Anthropic + Google integrations)
+- **Local inference**: Hugging Face Transformers.js via WebGPU/WASM
+- **State**: Zustand with localStorage persistence
+- **UI**: shadcn/ui + Tailwind CSS
+- **Package manager**: Bun
 
-![299shots_so](https://github.com/fcxmarquez/enki-ai/assets/63473082/ab4cde1d-09e4-4873-9054-aa0284771dc6)
+---
+
+## 📄 License
+
+MIT
