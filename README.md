@@ -89,7 +89,7 @@ Open the app, go to settings, and enter your API keys. Everything is stored loca
 
 ## 🛠️ Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
 - **AI**: LangChain (OpenAI + Anthropic + Google integrations)
 - **Local inference**: Hugging Face Transformers.js via WebGPU/WASM
