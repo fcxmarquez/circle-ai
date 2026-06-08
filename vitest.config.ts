@@ -12,6 +12,17 @@ const dirname =
 // More info at: https://storybook.js.org/docs/writing-tests/test-addon
 export default defineConfig({
   test: {
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      include: [
+        "components/**/*.{ts,tsx}",
+        "constants/**/*.ts",
+        "lib/**/*.ts",
+        "store/**/*.ts",
+      ],
+      exclude: ["**/*.test.{ts,tsx}", "**/*.stories.{ts,tsx}"],
+    },
     projects: [
       {
         resolve: {
