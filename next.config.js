@@ -4,6 +4,8 @@ const nextConfig = {
     "langchain",
     "@langchain/openai",
     "@langchain/anthropic",
+    "@langchain/google-genai",
+    "@google/generative-ai",
     "@huggingface/transformers",
     "onnxruntime-node",
     "sharp",
