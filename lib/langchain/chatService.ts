@@ -70,7 +70,8 @@ async function buildChatModel(
     maxTokens: config.maxTokens,
     maxRetries,
     timeout: timeoutMs,
-    clientOptions: { timeout: timeoutMs },
+    // clientOptions is OpenAI SDK-specific; passing it to other providers causes a validation error
+    ...(provider === "OpenAI" && { clientOptions: { timeout: timeoutMs } }),
     ...getReasoningFields(modelConfig, reasoningLevel),
   };
 
