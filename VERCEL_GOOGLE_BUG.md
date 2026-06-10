@@ -77,20 +77,26 @@ if (provider === "OpenAI") {
 }
 ```
 
-## Why not Option B (`outputFileTracingIncludes`)?
+## Why not `initChatModel` + `outputFileTracingIncludes`?
 
-`outputFileTracingIncludes` with the `langchain` aggregator package was investigated but is **not viable** with this dependency tree. `langchain@1.3.x` depends on `@langchain/langgraph@^1.2.8`, and resolving that range brings in `@langchain/langgraph@1.3.x` which requires `@langchain/core@^1.1.48`. Our pinned `@langchain/core@1.1.40` exports a subpath (`./language_models/stream`) that does not exist, crashing the Next.js build at page-data collection time with:
+Reverting to `initChatModel` was investigated as a cleaner API but is **not viable** with the current dependency tree.
+
+`langchain@1.3.x` depends on `@langchain/langgraph@^1.2.8`. Bun resolves that range to `@langchain/langgraph@1.3.x`, which requires `@langchain/core@^1.1.48`. Our pinned version is `@langchain/core@1.1.40`, which is missing a subpath export that `langgraph` needs — crashing the Next.js build at page-data collection time:
 
 ```
 ERR_PACKAGE_PATH_NOT_EXPORTED: Package subpath './language_models/stream' is not defined
 by "exports" in @langchain/core/package.json
 ```
 
-`outputFileTracingIncludes` would require upgrading the entire `@langchain/*` stack in lockstep — a separate task. The direct-import approach has no such constraint and is the official LangChain JS recommendation anyway (`npm install @langchain/openai @langchain/anthropic @langchain/google-genai`).
+Using `initChatModel` would require upgrading the entire `@langchain/*` stack in lockstep (`@langchain/core`, `@langchain/openai`, `@langchain/anthropic`, `@langchain/google-genai`).
+
+## Future intent
+
+Once the `@langchain/*` stack is upgraded to compatible versions, the plan is to revert `buildChatModel` to use `initChatModel` with `outputFileTracingIncludes` in `next.config.js` (covering both `/api/chat` and `/api/generate-title`). This is cleaner and removes the explicit per-provider branches. Track the upgrade as a separate task.
 
 ## Key files
 
-- `lib/langchain/chatService.ts` — `buildChatModel` calls `initChatModel`
+- `lib/langchain/chatService.ts` — `buildChatModel`, per-provider `await import()` branches
 - `next.config.js` — `serverExternalPackages` list
 - `app/api/chat/route.ts` — streams response, logs `"Error in streaming chat:"`
 - `app/api/generate-title/route.ts` — logs `"Title generation error:"`
