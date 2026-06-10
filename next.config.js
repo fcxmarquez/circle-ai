@@ -1,21 +1,5 @@
-// initChatModel resolves providers via a variable dynamic import that nft cannot
-// trace, so Vercel prunes these packages from the lambda unless force-included.
-// Includes are not re-traced, so the providers' SDK deps must be listed too.
-const langchainProviderIncludes = [
-  "node_modules/@langchain/openai/**/*",
-  "node_modules/@langchain/anthropic/**/*",
-  "node_modules/@langchain/google-genai/**/*",
-  "node_modules/openai/**/*",
-  "node_modules/@anthropic-ai/sdk/**/*",
-  "node_modules/@google/generative-ai/**/*",
-];
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  outputFileTracingIncludes: {
-    "/api/chat": langchainProviderIncludes,
-    "/api/generate-title": langchainProviderIncludes,
-  },
   serverExternalPackages: [
     // langchain must run unbundled: Turbopack compiles its variable dynamic
     // import (initChatModel) into a stub that throws at runtime

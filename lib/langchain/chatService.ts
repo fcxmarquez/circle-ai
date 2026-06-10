@@ -14,6 +14,18 @@ import {
   supportsTemperatureAtLevel,
 } from "@/lib/models";
 
+// initChatModel loads providers via a variable dynamic import that Vercel's file
+// tracer cannot follow, so the packages would be pruned from the lambda. These
+// literal imports are never executed (the env var is never set) but give the
+// tracer the providers' full dependency closure.
+if (process.env.NFT_TRACE_PROVIDER_IMPORTS) {
+  void Promise.all([
+    import("@langchain/openai"),
+    import("@langchain/anthropic"),
+    import("@langchain/google-genai"),
+  ]);
+}
+
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_TEMPERATURE = 0.7;
