@@ -1,6 +1,5 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { initChatModel } from "langchain";
 import type {
   ChatApiKeys,
   ChatMessage,
@@ -19,12 +18,6 @@ const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_TEMPERATURE = 0.7;
 
 type CloudProvider = "OpenAI" | "Anthropic" | "Google";
-
-const PROVIDER_PREFIX: Record<CloudProvider, string> = {
-  OpenAI: "openai",
-  Anthropic: "anthropic",
-  Google: "google-genai",
-};
 
 const PROVIDER_KEY: Record<CloudProvider, keyof ChatApiKeys> = {
   OpenAI: "openAIKey",
@@ -65,26 +58,51 @@ async function buildChatModel(
   const temperature = config.temperature ?? DEFAULT_TEMPERATURE;
   const reasoningLevel = config.reasoningLevel ?? modelConfig.reasoning.defaultLevel;
 
-  const fields: Record<string, unknown> = {
-    apiKey,
-    maxTokens: config.maxTokens,
-    maxRetries,
-    timeout: timeoutMs,
-    // clientOptions is OpenAI SDK-specific; passing it to other providers causes a validation error
-    ...(provider === "OpenAI" && { clientOptions: { timeout: timeoutMs } }),
-    ...getReasoningFields(modelConfig, reasoningLevel),
-  };
+  const reasoningFields = getReasoningFields(modelConfig, reasoningLevel);
+  const withTemperature = supportsTemperatureAtLevel(modelConfig, reasoningLevel);
+  const temperatureField = withTemperature ? { temperature } : {};
 
-  if (supportsTemperatureAtLevel(modelConfig, reasoningLevel)) {
-    fields.temperature = temperature;
+  let llm: BaseChatModel;
+
+  if (provider === "OpenAI") {
+    const { ChatOpenAI } = await import("@langchain/openai");
+    llm = new ChatOpenAI({
+      model: config.selectedModel,
+      apiKey,
+      maxTokens: config.maxTokens,
+      maxRetries,
+      timeout: timeoutMs,
+      clientOptions: { timeout: timeoutMs },
+      ...temperatureField,
+      ...reasoningFields,
+      // biome-ignore lint/suspicious/noExplicitAny: union reasoning fields spread
+    } as any) as unknown as BaseChatModel;
+  } else if (provider === "Anthropic") {
+    const { ChatAnthropic } = await import("@langchain/anthropic");
+    llm = new ChatAnthropic({
+      model: config.selectedModel,
+      apiKey,
+      maxTokens: config.maxTokens,
+      maxRetries,
+      timeout: timeoutMs,
+      ...temperatureField,
+      ...reasoningFields,
+      // biome-ignore lint/suspicious/noExplicitAny: union reasoning fields spread
+    } as any) as unknown as BaseChatModel;
+  } else {
+    const { ChatGoogleGenerativeAI } = await import("@langchain/google-genai");
+    llm = new ChatGoogleGenerativeAI({
+      model: config.selectedModel,
+      apiKey,
+      maxOutputTokens: config.maxTokens,
+      maxRetries,
+      ...temperatureField,
+      ...reasoningFields,
+      // biome-ignore lint/suspicious/noExplicitAny: union reasoning fields spread
+    } as any) as unknown as BaseChatModel;
   }
 
-  const llm = await initChatModel(
-    `${PROVIDER_PREFIX[provider]}:${config.selectedModel}`,
-    fields
-  );
-
-  return { llm: llm as unknown as BaseChatModel, timeoutMs };
+  return { llm, timeoutMs };
 }
 
 function convertToLangChainMessages(history: ChatMessage[]) {
