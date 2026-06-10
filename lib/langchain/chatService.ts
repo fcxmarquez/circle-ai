@@ -81,7 +81,7 @@ async function buildChatModel(
       timeout: timeoutMs,
       clientOptions: { timeout: timeoutMs },
       // biome-ignore lint/suspicious/noExplicitAny: union reasoning fields spread
-    } as any) as unknown as BaseChatModel;
+    } as any);
   } else if (provider === "Anthropic") {
     const { ChatAnthropic } = await import("@langchain/anthropic");
     llm = new ChatAnthropic({
@@ -89,14 +89,14 @@ async function buildChatModel(
       maxTokens: config.maxTokens,
       timeout: timeoutMs,
       // biome-ignore lint/suspicious/noExplicitAny: union reasoning fields spread
-    } as any) as unknown as BaseChatModel;
+    } as any);
   } else {
     const { ChatGoogleGenerativeAI } = await import("@langchain/google-genai");
     llm = new ChatGoogleGenerativeAI({
       ...commonFields,
       maxOutputTokens: config.maxTokens,
       // biome-ignore lint/suspicious/noExplicitAny: union reasoning fields spread
-    } as any) as unknown as BaseChatModel;
+    } as any);
   }
 
   return { llm, timeoutMs };
