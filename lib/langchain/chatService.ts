@@ -55,49 +55,46 @@ async function buildChatModel(
 
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
-  const temperature = config.temperature ?? DEFAULT_TEMPERATURE;
   const reasoningLevel = config.reasoningLevel ?? modelConfig.reasoning.defaultLevel;
 
   const reasoningFields = getReasoningFields(modelConfig, reasoningLevel);
   const withTemperature = supportsTemperatureAtLevel(modelConfig, reasoningLevel);
-  const temperatureField = withTemperature ? { temperature } : {};
+  const temperatureField = withTemperature
+    ? { temperature: config.temperature ?? DEFAULT_TEMPERATURE }
+    : {};
+
+  const commonFields = {
+    model: config.selectedModel,
+    apiKey,
+    maxRetries,
+    ...temperatureField,
+    ...reasoningFields,
+  };
 
   let llm: BaseChatModel;
 
   if (provider === "OpenAI") {
     const { ChatOpenAI } = await import("@langchain/openai");
     llm = new ChatOpenAI({
-      model: config.selectedModel,
-      apiKey,
+      ...commonFields,
       maxTokens: config.maxTokens,
-      maxRetries,
       timeout: timeoutMs,
       clientOptions: { timeout: timeoutMs },
-      ...temperatureField,
-      ...reasoningFields,
       // biome-ignore lint/suspicious/noExplicitAny: union reasoning fields spread
     } as any) as unknown as BaseChatModel;
   } else if (provider === "Anthropic") {
     const { ChatAnthropic } = await import("@langchain/anthropic");
     llm = new ChatAnthropic({
-      model: config.selectedModel,
-      apiKey,
+      ...commonFields,
       maxTokens: config.maxTokens,
-      maxRetries,
       timeout: timeoutMs,
-      ...temperatureField,
-      ...reasoningFields,
       // biome-ignore lint/suspicious/noExplicitAny: union reasoning fields spread
     } as any) as unknown as BaseChatModel;
   } else {
     const { ChatGoogleGenerativeAI } = await import("@langchain/google-genai");
     llm = new ChatGoogleGenerativeAI({
-      model: config.selectedModel,
-      apiKey,
+      ...commonFields,
       maxOutputTokens: config.maxTokens,
-      maxRetries,
-      ...temperatureField,
-      ...reasoningFields,
       // biome-ignore lint/suspicious/noExplicitAny: union reasoning fields spread
     } as any) as unknown as BaseChatModel;
   }

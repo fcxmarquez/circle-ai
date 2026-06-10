@@ -2,7 +2,7 @@
 
 ## Status
 
-**Resolved** — fix applied in `fix/settings-model-combobox-disabled-logic`
+**Verified** — fix confirmed working on Vercel (all providers)
 
 ## Symptoms
 
@@ -46,7 +46,7 @@ Different prefix — `@google/generative-ai` dep was likely not the root cause, 
 | Add `@langchain/google-genai` and `@google/generative-ai` to `serverExternalPackages` | `b8d0d6d` | Still 500 |
 | Remove `clientOptions` for non-OpenAI providers | `9ec4e96` | Still 500 |
 | Add `@google/generative-ai` as a direct `package.json` dependency | `e26cc93` | Still 500 |
-| **Replace `initChatModel` with direct per-provider `await import()`** | TBD | **Applied — pending verification** |
+| **Replace `initChatModel` with direct per-provider `await import()`** | `c5250b8` | **Confirmed working on Vercel** |
 
 ## Root cause hypothesis
 
