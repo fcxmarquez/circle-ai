@@ -17,6 +17,9 @@ const nextConfig = {
     "/api/generate-title": langchainProviderIncludes,
   },
   serverExternalPackages: [
+    // langchain must run unbundled: Turbopack compiles its variable dynamic
+    // import (initChatModel) into a stub that throws at runtime
+    "langchain",
     "@langchain/openai",
     "@langchain/anthropic",
     "@langchain/google-genai",
