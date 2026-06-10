@@ -2,7 +2,7 @@
 
 ## Status
 
-**Verified** — fix confirmed working on Vercel (all providers)
+**Resolved** — `initChatModel` restored and verified working on Vercel (all providers)
 
 ## Symptoms
 
@@ -11,33 +11,49 @@
 - **Works fine on localhost (`bun dev`)**
 - **Works fine with a local production build (`bun run build && bun start`)**
 
-## Error progression in Vercel logs
+## Root cause
 
-All messages are truncated by the Vercel log table (roughly 27–28 char display limit per row).
+`initChatModel` (from the `langchain` package) loads providers through a **variable** dynamic
+import — `await import(config.package)` in `langchain/dist/chat_models/universal.js`. That single
+line breaks in two independent ways on Vercel:
 
-### Deployment 1 (before any fix)
+1. **Bundling.** `langchain` was not in `serverExternalPackages`, so Turbopack bundled it into the
+   route chunk. Turbopack cannot resolve a fully-dynamic import expression at build time and
+   compiles it into a stub that throws at runtime
+   (`Error: Cannot find module as expression is too dynamic`, `code: MODULE_NOT_FOUND`) — it never
+   attempts Node resolution, so it fails even if the packages are present in the lambda.
 
-```
-Error in streaming chat: Er...
-```
+2. **Tracing.** Vercel prunes the lambda using nft (Node File Tracer), which statically follows
+   import chains. A variable specifier is untraceable, so `@langchain/openai`,
+   `@langchain/anthropic`, and `@langchain/google-genai` were excluded from the lambda even though
+   they sat in `node_modules` and `serverExternalPackages`.
 
-### Deployment 2 (after adding debug logging — since reverted)
+Locally both layers are masked because the full `node_modules` tree is always on disk.
 
-```
-CHAT_ERR [Error] Unable to ...
-TITLE_BUILD_ERR [Error] Una...
-```
+A third trap surfaced while fixing this: `outputFileTracingIncludes` globs are **not re-traced**.
+Force-including `@anthropic-ai/sdk/**/*` still failed at runtime because its own dependency
+(`standardwebhooks`) was not in the include list.
 
-"Unable to import" is the error LangChain's `initChatModel` throws when a dynamic `await import('@langchain/xxx')` fails at runtime. The error originates inside `buildChatModel` in `lib/langchain/chatService.ts`, before any API call is made.
+## Fix
 
-### Deployment 3 (after adding `@google/generative-ai` as direct dep)
+Three pieces, all required (commits `ef95f77`, `e0c2722`, `cfe7a33`):
 
-```
-Error in streaming chat: Er...
-Title generation error: Err...
-```
+1. **Upgrade the `@langchain/*` stack in lockstep** so `langchain` can be reinstalled:
+   `langchain@1.4.x`, `@langchain/core@1.1.48`, `@langchain/openai@1.4.x`,
+   `@langchain/anthropic@1.4.x`, `@langchain/google-genai@2.1.x`. (Older `@langchain/core@1.1.40`
+   lacked the `./language_models/stream` export that `@langchain/langgraph` needs, crashing
+   `next build` with `ERR_PACKAGE_PATH_NOT_EXPORTED`.)
 
-Different prefix — `@google/generative-ai` dep was likely not the root cause, or there is a second layer of failure now that the import itself resolves.
+2. **Add `langchain` to `serverExternalPackages`** in `next.config.js`. Unbundled, its dynamic
+   import executes as a real Node `import()` and resolves from `node_modules` at runtime.
+
+3. **Literal import anchors** in `lib/langchain/chatService.ts`: an unreachable
+   `if (process.env.NFT_TRACE_PROVIDER_IMPORTS)` block containing
+   `import("@langchain/openai")` etc. nft traces literal specifiers (and their full transitive
+   closure — `openai`, `@anthropic-ai/sdk`, `standardwebhooks`, …) so everything lands in the
+   lambda. Runtime still lazy-loads only the requested provider through `initChatModel`. This
+   replaced an `outputFileTracingIncludes` glob list, which was brittle (see trap above) and
+   shipped ~5,000 files vs ~1,200 with anchors.
 
 ## What was tried
 
@@ -46,57 +62,25 @@ Different prefix — `@google/generative-ai` dep was likely not the root cause, 
 | Add `@langchain/google-genai` and `@google/generative-ai` to `serverExternalPackages` | `b8d0d6d` | Still 500 |
 | Remove `clientOptions` for non-OpenAI providers | `9ec4e96` | Still 500 |
 | Add `@google/generative-ai` as a direct `package.json` dependency | `e26cc93` | Still 500 |
-| **Replace `initChatModel` with direct per-provider `await import()`** | `c5250b8` | **Confirmed working on Vercel** |
+| Replace `initChatModel` with direct per-provider `await import()` | `c5250b8` | Worked (interim fix) |
+| Restore `initChatModel` + `outputFileTracingIncludes` globs | `ef95f77` | Still 500 — Turbopack stub (root cause 1) |
+| Externalize `langchain` in `serverExternalPackages` | `e0c2722` | OpenAI/Google OK; Anthropic 500 — `standardwebhooks` pruned (include globs not re-traced) |
+| **Externalized `langchain` + literal import anchors** | `cfe7a33` | **All providers verified on Vercel** |
 
-## Root cause hypothesis
+## How it was verified
 
-`chatService.ts` calls `initChatModel` from the `langchain` package. `initChatModel` uses conditional `await import(...)` at runtime to lazy-load provider packages (`@langchain/openai`, `@langchain/anthropic`, `@langchain/google-genai`).
+POST to `/api/chat` on the preview deployment with dummy API keys per provider. Success criterion:
+the function logs show the **provider's own auth rejection** (OpenAI `401 Incorrect API key`,
+Anthropic `authentication_error`, Google `400 API key not valid`) instead of an import/module
+error — proving import, model construction, and the HTTP call all work. Then confirmed in the UI
+with real keys.
 
-Vercel bundles serverless functions using **nft (Node File Tracer)**. nft statically traces import chains to determine which files to include in the lambda. Dynamic imports inside `node_modules/langchain/...` are NOT in our source code — nft may not trace them, so the provider packages are absent at runtime even though they are listed in `node_modules` and `serverExternalPackages`.
-
-`serverExternalPackages` only tells the Next.js bundler not to inline these packages — it does not force nft to include them.
-
-Since `bun start` runs against the full local `node_modules` tree, all packages are present and nothing fails. Vercel's lambda zip is pruned, so the missing packages surface only in production.
-
-The same failure affects OpenAI and Anthropic — confirming it is NOT provider-specific but a universal `initChatModel` dynamic-import tracing problem.
-
-## Fix applied
-
-**Direct per-provider `await import()`** — replaced `initChatModel` with explicit branches in our source code. nft traces these and includes provider packages in the lambda.
-
-```ts
-if (provider === "OpenAI") {
-  const { ChatOpenAI } = await import("@langchain/openai");
-  llm = new ChatOpenAI({ ...fields });
-} else if (provider === "Anthropic") {
-  const { ChatAnthropic } = await import("@langchain/anthropic");
-  llm = new ChatAnthropic({ ...fields });
-} else {
-  const { ChatGoogleGenerativeAI } = await import("@langchain/google-genai");
-  llm = new ChatGoogleGenerativeAI({ ...fields });
-}
-```
-
-## Why not `initChatModel` + `outputFileTracingIncludes`?
-
-Reverting to `initChatModel` was investigated as a cleaner API but is **not viable** with the current dependency tree.
-
-`langchain@1.3.x` depends on `@langchain/langgraph@^1.2.8`. Bun resolves that range to `@langchain/langgraph@1.3.x`, which requires `@langchain/core@^1.1.48`. Our pinned version is `@langchain/core@1.1.40`, which is missing a subpath export that `langgraph` needs — crashing the Next.js build at page-data collection time:
-
-```
-ERR_PACKAGE_PATH_NOT_EXPORTED: Package subpath './language_models/stream' is not defined
-by "exports" in @langchain/core/package.json
-```
-
-Using `initChatModel` would require upgrading the entire `@langchain/*` stack in lockstep (`@langchain/core`, `@langchain/openai`, `@langchain/anthropic`, `@langchain/google-genai`).
-
-## Future intent
-
-Once the `@langchain/*` stack is upgraded to compatible versions, the plan is to revert `buildChatModel` to use `initChatModel` with `outputFileTracingIncludes` in `next.config.js` (covering both `/api/chat` and `/api/generate-title`). This is cleaner and removes the explicit per-provider branches. Track the upgrade as a separate task.
+Note: Vercel's log table truncates messages to ~28 chars. Full messages require
+`vercel logs <deployment-url> --json` (tail while reproducing; delivery lags up to ~2 min).
 
 ## Key files
 
-- `lib/langchain/chatService.ts` — `buildChatModel`, per-provider `await import()` branches
-- `next.config.js` — `serverExternalPackages` list
+- `lib/langchain/chatService.ts` — `buildChatModel` via `initChatModel`, trace-anchor imports
+- `next.config.js` — `serverExternalPackages` (must include `langchain` and the provider packages)
 - `app/api/chat/route.ts` — streams response, logs `"Error in streaming chat:"`
 - `app/api/generate-title/route.ts` — logs `"Title generation error:"`
