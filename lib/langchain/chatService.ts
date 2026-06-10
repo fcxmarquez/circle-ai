@@ -97,41 +97,32 @@ export async function generateConversationTitle(
   message: string,
   config: ChatModelConfig
 ): Promise<string> {
-  let buildPhase = true;
-  try {
-    const { llm } = await buildChatModel({
-      ...config,
-      reasoningLevel: "none",
-      temperature: 0.3,
-    });
-    buildPhase = false;
-    const result = await llm.invoke([
-      new SystemMessage(
-        "You generate brief conversation titles. Reply with only the title — no quotes, no trailing punctuation."
-      ),
-      new HumanMessage(
-        `Generate a title of 3–7 words for a conversation starting with this message:\n\n${message}`
-      ),
-    ]);
+  const { llm } = await buildChatModel({
+    ...config,
+    reasoningLevel: "none",
+    temperature: 0.3,
+  });
 
-    const raw = result.contentBlocks
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("");
+  const result = await llm.invoke([
+    new SystemMessage(
+      "You generate brief conversation titles. Reply with only the title — no quotes, no trailing punctuation."
+    ),
+    new HumanMessage(
+      `Generate a title of 3–7 words for a conversation starting with this message:\n\n${message}`
+    ),
+  ]);
 
-    return raw
-      .trim()
-      .replace(/^["']+|["']+$/g, "")
-      .replace(/[.!?]+$/, "")
-      .trim()
-      .slice(0, 80);
-  } catch (error) {
-    const name = error instanceof Error ? error.constructor.name : "unknown";
-    const msg = error instanceof Error ? error.message : String(error);
-    const prefix = buildPhase ? "TITLE_BUILD_ERR" : "TITLE_INVOKE_ERR";
-    console.error(`${prefix} [${name}] ${msg}`);
-    throw error;
-  }
+  const raw = result.contentBlocks
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+
+  return raw
+    .trim()
+    .replace(/^["']+|["']+$/g, "")
+    .replace(/[.!?]+$/, "")
+    .trim()
+    .slice(0, 80);
 }
 
 export async function* streamChatResponse({
@@ -165,9 +156,7 @@ export async function* streamChatResponse({
       }
     }
   } catch (error) {
-    const name = error instanceof Error ? error.constructor.name : "unknown";
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error(`CHAT_ERR [${name}] ${msg}`);
+    console.error("Error in streaming chat:", error);
     throw error;
   }
 }
