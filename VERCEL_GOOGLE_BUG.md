@@ -60,56 +60,33 @@ Since `bun start` runs against the full local `node_modules` tree, all packages 
 
 The same failure affects OpenAI and Anthropic — confirming it is NOT provider-specific but a universal `initChatModel` dynamic-import tracing problem.
 
-## Most promising next steps
+## Fix applied
 
-### Option A — Replace `initChatModel` with direct instantiation
-
-Instead of relying on LangChain's internal dynamic imports, instantiate each provider class directly in our code. nft can statically trace top-level `import()` calls in our source files.
+**Direct per-provider `await import()`** — replaced `initChatModel` with explicit branches in our source code. nft traces these and includes provider packages in the lambda.
 
 ```ts
-// chatService.ts — replace initChatModel with per-provider branches
 if (provider === "OpenAI") {
   const { ChatOpenAI } = await import("@langchain/openai");
-  llm = new ChatOpenAI({ apiKey, modelName: config.selectedModel, ...fields });
+  llm = new ChatOpenAI({ ...fields });
 } else if (provider === "Anthropic") {
   const { ChatAnthropic } = await import("@langchain/anthropic");
-  llm = new ChatAnthropic({ apiKey, modelName: config.selectedModel, ...fields });
-} else if (provider === "Google") {
+  llm = new ChatAnthropic({ ...fields });
+} else {
   const { ChatGoogleGenerativeAI } = await import("@langchain/google-genai");
-  llm = new ChatGoogleGenerativeAI({ apiKey, modelName: config.selectedModel, ...fields });
+  llm = new ChatGoogleGenerativeAI({ ...fields });
 }
 ```
 
-### Option B — Force nft to include the packages via `outputFileTracingIncludes`
+## Why not Option B (`outputFileTracingIncludes`)?
 
-Add to `next.config.js`:
+`outputFileTracingIncludes` with the `langchain` aggregator package was investigated but is **not viable** with this dependency tree. `langchain@1.3.x` depends on `@langchain/langgraph@^1.2.8`, and resolving that range brings in `@langchain/langgraph@1.3.x` which requires `@langchain/core@^1.1.48`. Our pinned `@langchain/core@1.1.40` exports a subpath (`./language_models/stream`) that does not exist, crashing the Next.js build at page-data collection time with:
 
-```js
-experimental: {
-  outputFileTracingIncludes: {
-    "/api/chat": [
-      "./node_modules/@langchain/openai/**",
-      "./node_modules/@langchain/anthropic/**",
-      "./node_modules/@langchain/google-genai/**",
-      "./node_modules/openai/**",
-      "./node_modules/@anthropic-ai/**",
-      "./node_modules/@google/generative-ai/**",
-    ],
-  },
-},
+```
+ERR_PACKAGE_PATH_NOT_EXPORTED: Package subpath './language_models/stream' is not defined
+by "exports" in @langchain/core/package.json
 ```
 
-This forces nft to bundle those directories into the lambda regardless of static trace results.
-
-### Verifying locally before deploying
-
-Run `npx vercel build` to produce a pruned lambda under `.vercel/output/functions/`. Then check:
-
-```bash
-ls .vercel/output/functions/api/chat.func/node_modules/@langchain/
-```
-
-If the provider packages are missing there, the hypothesis is confirmed. After applying either fix, re-run `npx vercel build` and confirm the packages now appear.
+`outputFileTracingIncludes` would require upgrading the entire `@langchain/*` stack in lockstep — a separate task. The direct-import approach has no such constraint and is the official LangChain JS recommendation anyway (`npm install @langchain/openai @langchain/anthropic @langchain/google-genai`).
 
 ## Key files
 
