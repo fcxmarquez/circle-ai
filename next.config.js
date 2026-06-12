@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: [
+    // langchain must run unbundled: Turbopack compiles its variable dynamic
+    // import (initChatModel) into a stub that throws at runtime
     "langchain",
     "@langchain/openai",
     "@langchain/anthropic",
+    "@langchain/google-genai",
     "@huggingface/transformers",
     "onnxruntime-node",
     "sharp",

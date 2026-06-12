@@ -14,6 +14,18 @@ import {
   supportsTemperatureAtLevel,
 } from "@/lib/models";
 
+// initChatModel loads providers via a variable dynamic import that Vercel's file
+// tracer cannot follow, so the packages would be pruned from the lambda. These
+// literal imports are never executed (the env var is never set) but give the
+// tracer the providers' full dependency closure.
+if (process.env.NFT_TRACE_PROVIDER_IMPORTS) {
+  void Promise.all([
+    import("@langchain/openai"),
+    import("@langchain/anthropic"),
+    import("@langchain/google-genai"),
+  ]);
+}
+
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_TEMPERATURE = 0.7;
@@ -62,28 +74,38 @@ async function buildChatModel(
 
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
-  const temperature = config.temperature ?? DEFAULT_TEMPERATURE;
   const reasoningLevel = config.reasoningLevel ?? modelConfig.reasoning.defaultLevel;
 
-  const fields: Record<string, unknown> = {
-    apiKey,
-    maxTokens: config.maxTokens,
-    maxRetries,
-    timeout: timeoutMs,
-    clientOptions: { timeout: timeoutMs },
-    ...getReasoningFields(modelConfig, reasoningLevel),
-  };
+  const reasoningFields = getReasoningFields(modelConfig, reasoningLevel);
+  const withTemperature = supportsTemperatureAtLevel(modelConfig, reasoningLevel);
+  const temperatureField = withTemperature
+    ? { temperature: config.temperature ?? DEFAULT_TEMPERATURE }
+    : {};
 
-  if (supportsTemperatureAtLevel(modelConfig, reasoningLevel)) {
-    fields.temperature = temperature;
-  }
+  const providerFields =
+    provider === "OpenAI"
+      ? {
+          maxTokens: config.maxTokens,
+          timeout: timeoutMs,
+          // clientOptions is OpenAI SDK-specific; other providers reject it
+          clientOptions: { timeout: timeoutMs },
+        }
+      : provider === "Anthropic"
+        ? { maxTokens: config.maxTokens, timeout: timeoutMs }
+        : { maxOutputTokens: config.maxTokens };
 
   const llm = await initChatModel(
     `${PROVIDER_PREFIX[provider]}:${config.selectedModel}`,
-    fields
+    {
+      apiKey,
+      maxRetries,
+      ...temperatureField,
+      ...reasoningFields,
+      ...providerFields,
+    }
   );
 
-  return { llm: llm as unknown as BaseChatModel, timeoutMs };
+  return { llm, timeoutMs };
 }
 
 function convertToLangChainMessages(history: ChatMessage[]) {

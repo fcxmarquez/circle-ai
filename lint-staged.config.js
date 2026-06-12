@@ -7,10 +7,14 @@ module.exports = {
     return filteredFiles.length > 0 ? "npx tsc --noEmit" : [];
   },
 
-  // This will lint and format TypeScript and JavaScript files (excluding storybook)
+  // This will lint and format TypeScript and JavaScript files (excluding storybook and config files ignored by biome)
   "**/*.(ts|tsx|js)": (filenames) => {
     const filteredFiles = filenames.filter(
-      (file) => !file.includes("stories/") && !file.includes(".storybook/")
+      (file) =>
+        !file.includes("stories/") &&
+        !file.includes(".storybook/") &&
+        !file.endsWith(".config.js") &&
+        !file.endsWith(".config.mjs")
     );
     return filteredFiles.length > 0
       ? [`npx biome check --write ${filteredFiles.join(" ")}`]
