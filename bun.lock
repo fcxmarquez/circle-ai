@@ -5,7 +5,6 @@
     "": {
       "name": "enki-ai",
       "dependencies": {
-        "@google/generative-ai": "^0.24.1",
         "@hookform/resolvers": "^5.0.1",
         "@huggingface/transformers": "^4.1.0",
         "@langchain/anthropic": "^1.4.0",
