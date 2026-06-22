@@ -27,11 +27,17 @@ export default defineConfig({
       {
         resolve: {
           alias: { "@": dirname },
+          // Deduplicate React so all packages (e.g. Radix UI) share the same instance.
+          // Without this, pnpm's isolated node_modules can give each package its own
+          // React copy, causing "Invalid hook call" errors in jsdom component tests.
+          dedupe: ["react", "react-dom"],
         },
         test: {
           name: "unit",
           environment: "node",
+          setupFiles: ["./test/setup-dom.ts"],
           include: [
+            "app/**/*.test.{ts,tsx}",
             "components/**/*.test.{ts,tsx}",
             "constants/**/*.test.ts",
             "lib/**/*.test.ts",
